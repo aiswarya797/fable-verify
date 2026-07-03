@@ -329,12 +329,11 @@ def artifact_integrity_status(root: Path, record: dict[str, Any]) -> str:
 
 
 def image_like_artifact(path: Path) -> bool:
-    if path.suffix.lower() in IMAGE_EXTENSIONS:
-        return True
     try:
-        header = path.read_bytes()[:16]
+        header = path.read_bytes()[:4096]
     except OSError:
         return False
+    trimmed = header.lstrip()
     return any(
         [
             header.startswith(b"\x89PNG\r\n\x1a\n"),
@@ -343,6 +342,10 @@ def image_like_artifact(path: Path) -> bool:
             header.startswith(b"GIF89a"),
             header.startswith(b"RIFF") and header[8:12] == b"WEBP",
             header.startswith(b"BM"),
+            header.startswith(b"II*\x00"),
+            header.startswith(b"MM\x00*"),
+            re.match(rb"(?:<\?xml[^>]*>\s*)?(?:<!--.*?-->\s*)*<svg(?:\s|>)", trimmed, re.I | re.S)
+            is not None,
         ]
     )
 
