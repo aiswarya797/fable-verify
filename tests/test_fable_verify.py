@@ -608,11 +608,39 @@ class FableVerifyCliTest(unittest.TestCase):
                 "--artifact-path",
                 str(text_artifact),
             )
+            fake_png = cwd / "fake.png"
+            fake_png.write_text("not actually an image\n", encoding="utf-8")
+            wrong_png = self.run_cli(
+                cwd,
+                "add-evidence",
+                "--criterion",
+                "AC-001",
+                "--type",
+                "screenshot",
+                "--artifact-path",
+                str(fake_png),
+            )
+            fake_svg = cwd / "fake.svg"
+            fake_svg.write_text("not actually svg\n", encoding="utf-8")
+            wrong_svg = self.run_cli(
+                cwd,
+                "add-evidence",
+                "--criterion",
+                "AC-001",
+                "--type",
+                "screenshot",
+                "--artifact-path",
+                str(fake_svg),
+            )
 
             self.assertNotEqual(missing_artifact.returncode, 0)
             self.assertNotEqual(wrong_type.returncode, 0)
+            self.assertNotEqual(wrong_png.returncode, 0)
+            self.assertNotEqual(wrong_svg.returncode, 0)
             self.assertIn("requires a real attached image artifact", missing_artifact.stderr)
             self.assertIn("requires an image artifact", wrong_type.stderr)
+            self.assertIn("requires an image artifact", wrong_png.stderr)
+            self.assertIn("requires an image artifact", wrong_svg.stderr)
             self.assertEqual(before, self.state_snapshot(cwd))
 
     def test_browser_placeholder_only_evidence_fails_without_mutating_state(self) -> None:

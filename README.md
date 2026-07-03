@@ -21,6 +21,18 @@ whether Fable Verify runs the command or records an externally captured artifact
 Artifacts are hashed with SHA-256 and byte size at capture time; `check` fails
 if a current proof artifact is missing, mutated, or lacks integrity metadata.
 
+## Install
+
+Fable Verify ships as a small npm-distributed Python CLI. It requires Python
+3.10 or newer on your `PATH`.
+
+```sh
+npm install -g fable-verify
+fable-verify init
+```
+
+For local development from this repository, call `./bin/fable-verify`.
+
 ## What It Does
 
 Fable Verify creates a `.fable-verify/` workspace in your repository:
@@ -82,8 +94,9 @@ Strong evidence:
   Completion requires exit code `0`.
 - `diff`: must include captured command output, such as `git diff` or
   `git status`, or a real attached patch/status artifact.
-- `screenshot`: must include an attached image artifact. The CLI checks for an
-  image-like extension or recognizable image header.
+- `screenshot`: must include an attached image artifact. The CLI checks for
+  recognizable raster image headers or an SVG document root; a renamed text file
+  is rejected.
 - `browser`: must include command-generated output or an attached artifact such
   as a screenshot, log, trace, or report.
 - `file-read`: must include command output or an attached artifact proving what
@@ -105,6 +118,11 @@ This is artifact tamper evidence, not cryptographic non-repudiation. The
 repo-local JSON files are still editable by someone with write access, so use
 normal code review, CI, and repository controls when you need an immutable or
 signed audit log.
+
+Fable Verify checks proof shape, ownership, command exit status, and artifact
+integrity. It does not prove that a screenshot semantically shows the right UI
+or that a diff implements the correct product decision; reviewers still inspect
+the attached artifacts.
 
 ## What This Is Not
 
@@ -131,27 +149,25 @@ runs. Those are not implemented in this lightweight CLI today.
 
 ## Quickstart
 
-From the `Fable-Verify` folder, this creates a throwaway workspace and reaches
+With the npm package installed, this creates a throwaway workspace and reaches
 `PASS` before generating a report:
 
 ```sh
 tmpdir="$(mktemp -d)"
-FABLE_VERIFY="$PWD/bin/fable-verify"
 cd "$tmpdir"
 
-"$FABLE_VERIFY" init
-"$FABLE_VERIFY" plan "Bug: login redirect fails"
-"$FABLE_VERIFY" add-evidence --criterion AC-001 --type test --command "python -c \"print('reproduced redirect bug')\""
-"$FABLE_VERIFY" add-evidence --criterion AC-001 --type log --command "python -c \"print('before: redirect loop observed')\""
-"$FABLE_VERIFY" add-evidence --criterion AC-002 --type diff --command "python -c \"print('diff reviewed: login redirect fix')\""
-"$FABLE_VERIFY" add-evidence --criterion AC-003 --type test --command "python -c \"print('redirect regression test passed')\""
-"$FABLE_VERIFY" add-evidence --criterion AC-004 --type diff --command "python -c \"print('scoped diff reviewed')\""
-"$FABLE_VERIFY" check
-"$FABLE_VERIFY" report
+fable-verify init
+fable-verify plan "Bug: login redirect fails"
+fable-verify add-evidence --criterion AC-001 --type test --command "python -c \"print('reproduced redirect bug')\""
+fable-verify add-evidence --criterion AC-001 --type log --command "python -c \"print('before: redirect loop observed')\""
+fable-verify add-evidence --criterion AC-002 --type diff --command "python -c \"print('diff reviewed: login redirect fix')\""
+fable-verify add-evidence --criterion AC-003 --type test --command "python -c \"print('redirect regression test passed')\""
+fable-verify add-evidence --criterion AC-004 --type diff --command "python -c \"print('scoped diff reviewed')\""
+fable-verify check
+fable-verify report
 ```
 
-For repo-wide convenience you can add `Fable-Verify/bin` to your `PATH`, or call
-the script directly from this folder.
+From a local checkout, replace `fable-verify` with `./bin/fable-verify`.
 
 ## CLI Commands
 

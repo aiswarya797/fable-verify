@@ -1,0 +1,42 @@
+{
+  "name": "fable-verify",
+  "version": "0.1.0",
+  "description": "Repo-local auditable proof trail for coding agents.",
+  "homepage": "https://github.com/aiswarya797/fable-verify#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aiswarya797/fable-verify.git"
+  },
+  "bugs": {
+    "url": "https://github.com/aiswarya797/fable-verify/issues"
+  },
+  "license": "MIT",
+  "bin": {
+    "fable-verify": "bin/fable-verify"
+  },
+  "files": [
+    "bin/fable-verify",
+    "examples",
+    "fable-verify/SKILL.md",
+    "fable_verify/__init__.py",
+    "fable_verify/cli.py",
+    "LICENSE",
+    "README.md"
+  ],
+  "keywords": [
+    "agents",
+    "ai-agents",
+    "verification",
+    "codex",
+    "claude",
+    "evidence",
+    "audit"
+  ],
+  "scripts": {
+    "test": "PYTHONDONTWRITEBYTECODE=1 python -m unittest discover -s tests",
+    "pack:check": "npm pack --dry-run"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
