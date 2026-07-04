@@ -21,7 +21,10 @@
     "fable_verify/__init__.py",
     "fable_verify/cli.py",
     "LICENSE",
-    "README.md"
+    "README.md",
+    "scripts/doctor.py",
+    "scripts/eval_matrix.py",
+    "scripts/smoke_test.py"
   ],
   "keywords": [
     "agents",
@@ -33,8 +36,12 @@
     "audit"
   ],
   "scripts": {
-    "test": "PYTHONDONTWRITEBYTECODE=1 python -m unittest discover -s tests",
-    "pack:check": "npm pack --dry-run"
+    "test": "python3 -B -m unittest discover -s tests",
+    "doctor": "python3 -B scripts/doctor.py",
+    "smoke": "python3 -B scripts/smoke_test.py",
+    "eval:matrix": "python3 -B scripts/eval_matrix.py",
+    "pack:check": "npm pack --dry-run",
+    "preflight": "npm test && npm run doctor && npm run smoke && npm run eval:matrix && npm run pack:check"
   },
   "publishConfig": {
     "access": "public"
