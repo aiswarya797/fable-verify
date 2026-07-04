@@ -1,6 +1,6 @@
 {
   "name": "fable-verify",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Repo-local auditable proof trail for coding agents.",
   "homepage": "https://github.com/aiswarya797/fable-verify#readme",
   "repository": {
