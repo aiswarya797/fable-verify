@@ -407,14 +407,40 @@ demo-sized scenario.
 Run the test suite:
 
 ```sh
-PYTHONDONTWRITEBYTECODE=1 python -m unittest discover -s tests
+npm test
 ```
 
-Run a smoke check:
+Run the local doctor to confirm the CLI can run from the current checkout:
 
 ```sh
-tmpdir="$(mktemp -d)"
-(cd "$tmpdir" && /absolute/path/to/Fable-Verify/bin/fable-verify init)
+npm run doctor
+```
+
+Run a full happy-path smoke check in a temporary repository:
+
+```sh
+npm run smoke
+```
+
+Run the canned evaluation matrix. It intentionally verifies both expected
+passing and expected failing gates:
+
+```sh
+npm run eval:matrix
+```
+
+Before publicizing a release candidate, run the complete local preflight:
+
+```sh
+npm run preflight
+```
+
+That expands to unit tests, doctor, smoke, eval matrix, and package dry-run.
+For the Codex skill check, run the skill validator from your Codex home against
+the `fable-verify/` skill directory.
+
+```sh
+python ~/.codex/skills/.system/skill-creator/scripts/quick_validate.py fable-verify
 ```
 
 ## Release Hygiene

@@ -1,3 +1,8 @@
+---
+name: fable-verify
+description: Use Fable Verify to make coding-agent completion claims evidence-backed with repo-local acceptance criteria, proof artifacts, checks, and reports.
+---
+
 # Fable Verify Agent Instructions
 
 Use this file when a coding agent should work in a Fable-like discipline using
@@ -45,14 +50,16 @@ check` runs. Those controls are not part of the current lightweight CLI.
 ## Before Starting Work
 
 1. Read the user's goal.
-2. Run `fable-verify init`, or create the same `.fable-verify/` structure if the
+2. If you are validating the Fable Verify package itself, run `npm run doctor`,
+   `npm run smoke`, and `npm run eval:matrix` before release checks.
+3. Run `fable-verify init`, or create the same `.fable-verify/` structure if the
    command is not on `PATH`.
-3. Run `fable-verify plan "<goal>"`, provide the goal through stdin, or write the
+4. Run `fable-verify plan "<goal>"`, provide the goal through stdin, or write the
    goal to `.fable-verify/goal.md` and run `fable-verify plan`.
-4. Review `.fable-verify/acceptance.json`.
-5. Refine the criteria until each item is observable, testable, and has explicit
+5. Review `.fable-verify/acceptance.json`.
+6. Refine the criteria until each item is observable, testable, and has explicit
    `evidence_required` values.
-6. Ask clarifying questions only when the goal cannot be made testable from the
+7. Ask clarifying questions only when the goal cannot be made testable from the
    available context.
 
 ## During Work

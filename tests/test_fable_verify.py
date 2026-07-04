@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -10,6 +12,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CLI = ROOT / "bin" / "fable-verify"
+DOCTOR = ROOT / "scripts" / "doctor.py"
+SMOKE_TEST = ROOT / "scripts" / "smoke_test.py"
+EVAL_MATRIX = ROOT / "scripts" / "eval_matrix.py"
+SCRIPT_PYTHON = os.environ.get("FABLE_VERIFY_PYTHON") or shutil.which("python3") or sys.executable
 
 
 class FableVerifyCliTest(unittest.TestCase):
@@ -24,6 +30,17 @@ class FableVerifyCliTest(unittest.TestCase):
         if check and result.returncode != 0:
             self.fail(f"command failed: {args}\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}")
         return result
+
+    def run_script(self, script: Path, cwd: Path) -> subprocess.CompletedProcess[str]:
+        env = {**os.environ, "FABLE_VERIFY_BIN": str(CLI)}
+        return subprocess.run(
+            [SCRIPT_PYTHON, "-B", str(script)],
+            cwd=cwd,
+            text=True,
+            capture_output=True,
+            check=False,
+            env=env,
+        )
 
     def write_acceptance(self, cwd: Path, criteria: list[dict[str, object]]) -> None:
         path = cwd / ".fable-verify" / "acceptance.json"
@@ -326,6 +343,67 @@ class FableVerifyCliTest(unittest.TestCase):
                 offenders.append(str(path.relative_to(ROOT)))
 
         self.assertEqual([], offenders)
+
+    def test_package_files_list_release_scripts_explicitly(self) -> None:
+        package = self.read_json(ROOT / "package.json")
+        files = package["files"]
+
+        self.assertNotIn("scripts", files)
+        self.assertIn("scripts/doctor.py", files)
+        self.assertIn("scripts/smoke_test.py", files)
+        self.assertIn("scripts/eval_matrix.py", files)
+
+    def test_doctor_passes_with_ignored_initialized_state(self) -> None:
+        if not shutil.which("git"):
+            self.skipTest("git is required for ignore-rule doctor coverage")
+        with tempfile.TemporaryDirectory() as temp:
+            cwd = Path(temp)
+            subprocess.run(["git", "init"], cwd=cwd, text=True, capture_output=True, check=True)
+            (cwd / ".gitignore").write_text(".fable-verify/\n", encoding="utf-8")
+            self.run_cli(cwd, "init", check=True)
+
+            result = self.run_script(DOCTOR, cwd)
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("PASS Python version", result.stdout)
+            self.assertIn("PASS fable-verify availability", result.stdout)
+            self.assertIn("PASS writable repository", result.stdout)
+            self.assertIn("PASS .fable-verify state", result.stdout)
+            self.assertIn("PASS .fable-verify ignored", result.stdout)
+
+    def test_doctor_fails_when_state_is_not_ignored(self) -> None:
+        if not shutil.which("git"):
+            self.skipTest("git is required for ignore-rule doctor coverage")
+        with tempfile.TemporaryDirectory() as temp:
+            cwd = Path(temp)
+            subprocess.run(["git", "init"], cwd=cwd, text=True, capture_output=True, check=True)
+            self.run_cli(cwd, "init", check=True)
+
+            result = self.run_script(DOCTOR, cwd)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("FAIL .fable-verify ignored", result.stdout)
+            self.assertIn("is not ignored by git", result.stdout)
+
+    def test_smoke_script_exercises_full_loop(self) -> None:
+        result = self.run_script(SMOKE_TEST, ROOT)
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("$ fable-verify init", result.stdout)
+        self.assertIn("$ fable-verify check", result.stdout)
+        self.assertIn("PASS", result.stdout)
+        self.assertIn("Smoke test passed", result.stdout)
+
+    def test_eval_matrix_demonstrates_expected_pass_and_fail_cases(self) -> None:
+        result = self.run_script(EVAL_MATRIX, ROOT)
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("missing evidence fails (expected gate FAIL)", result.stdout)
+        self.assertIn("good command evidence passes (expected gate PASS)", result.stdout)
+        self.assertIn("nonzero command evidence fails (expected gate FAIL)", result.stdout)
+        self.assertIn("tampered artifact fails (expected gate FAIL)", result.stdout)
+        self.assertIn("missing artifact fails (expected gate FAIL)", result.stdout)
+        self.assertIn("Summary: 5/5 scenarios behaved as expected", result.stdout)
 
     def test_missing_evidence_fails_gate(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
