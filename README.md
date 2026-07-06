@@ -1,8 +1,19 @@
-# Fable Verify
+# Fable Verify: Proof-of-Done Verification for AI Coding Agents
 
-Fable Verify is a repo-local workflow and verification toolkit for coding agents.
-It is not a model and it is not tied to Codex, Claude Code, Cursor, OpenCode, or
-any other harness. It gives an agent a plain-file discipline:
+**Proof-of-done verification for AI coding agents.**
+
+Fable Verify is a lightweight, repo-local CLI and agent skill that helps coding
+agents prove work is done before they say "done." It turns completion claims
+into acceptance criteria, command output, exit codes, diffs, screenshots or
+browser artifacts, evidence reviews, tamper-evident hashes, JSON gate output,
+and Markdown audit reports.
+
+Use it when you need an AI coding agent verification gate, a PR evidence gate,
+an agent audit trail, a completion receipt for autonomous coding workflows, or a
+concrete answer to "how do you know this change is correct?"
+
+Fable Verify is not a model and it is not tied to Codex, Claude Code, Cursor,
+OpenCode, or any other harness. It gives an agent a plain-file discipline:
 
 ```text
 Goal -> Spec -> Plan -> Work -> Evidence -> Self-Review -> Verification Gate -> Final Report
@@ -24,6 +35,19 @@ Artifacts are hashed with SHA-256 and byte size at capture time and again at
 review time; `check` fails if a current proof artifact is missing, mutated,
 lacks integrity metadata, has not been reviewed, has a non-supporting review
 verdict, or no longer matches the bytes observed during review.
+
+## Use Cases
+
+- **AI coding agent verification:** require proof before an agent claims a task
+  is done, fixed, correct, verified, or ready for review.
+- **Proof-of-done reports:** connect acceptance criteria to evidence IDs,
+  commands, artifacts, review notes, and final verdicts.
+- **PR verification gates:** run `fable-verify check --json` in GitHub Actions
+  or another supervisor before a pull request is merged.
+- **Agent audit trails:** keep repo-local records of what changed, what ran,
+  what evidence was reviewed, and which blockers remain.
+- **Supervised and autonomous handoffs:** give humans or downstream agents a
+  completion receipt instead of a long chat transcript.
 
 ## Install
 
