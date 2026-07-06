@@ -15,6 +15,7 @@
     "fable-verify": "bin/fable-verify"
   },
   "files": [
+    "assets",
     "bin/fable-verify",
     "docs",
     "examples",
