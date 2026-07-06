@@ -2,15 +2,27 @@
 
 **Proof-of-done verification for AI coding agents.**
 
-Fable Verify is a lightweight, repo-local CLI and agent skill that helps coding
-agents prove work is done before they say "done." It turns completion claims
-into acceptance criteria, command output, exit codes, diffs, screenshots or
-browser artifacts, evidence reviews, tamper-evident hashes, JSON gate output,
-and Markdown audit reports.
+Your coding agent says "done." Fable Verify asks: "based on what?"
 
-Use it when you need an AI coding agent verification gate, a PR evidence gate,
-an agent audit trail, a completion receipt for autonomous coding workflows, or a
-concrete answer to "how do you know this change is correct?"
+Repo-local proof gates for Codex, Claude Code, Cursor, OpenCode, shell-only
+agents, and any coding workflow that can run local commands. Fable Verify turns
+completion claims into acceptance criteria, command output, exit codes, diffs,
+screenshots or browser artifacts, evidence reviews, tamper-evident hashes, JSON
+gate output, and Markdown audit reports.
+
+[![npm version](https://img.shields.io/npm/v/fable-verify)](https://www.npmjs.com/package/fable-verify)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB)
+![No cloud required](https://img.shields.io/badge/cloud-not_required-16a34a)
+![JSON gate](https://img.shields.io/badge/check---json-111827)
+
+Proof-of-done reports • PR verification gates • Agent audit trails • Completion
+receipts • Tamper-evident evidence
+
+Install • Best Agent Setup • Quickstart • GitHub Actions PR Gate • Realistic
+Demo • What This Is Not
+
+---
 
 Fable Verify is not a model and it is not tied to Codex, Claude Code, Cursor,
 OpenCode, or any other harness. It gives an agent a plain-file discipline:
@@ -35,19 +47,6 @@ Artifacts are hashed with SHA-256 and byte size at capture time and again at
 review time; `check` fails if a current proof artifact is missing, mutated,
 lacks integrity metadata, has not been reviewed, has a non-supporting review
 verdict, or no longer matches the bytes observed during review.
-
-## Use Cases
-
-- **AI coding agent verification:** require proof before an agent claims a task
-  is done, fixed, correct, verified, or ready for review.
-- **Proof-of-done reports:** connect acceptance criteria to evidence IDs,
-  commands, artifacts, review notes, and final verdicts.
-- **PR verification gates:** run `fable-verify check --json` in GitHub Actions
-  or another supervisor before a pull request is merged.
-- **Agent audit trails:** keep repo-local records of what changed, what ran,
-  what evidence was reviewed, and which blockers remain.
-- **Supervised and autonomous handoffs:** give humans or downstream agents a
-  completion receipt instead of a long chat transcript.
 
 ## Install
 
