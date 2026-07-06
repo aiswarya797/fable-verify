@@ -1,26 +1,43 @@
-# Fable Verify
+<div align="center">
+  <h1>
+    <img src="assets/fable-verify-logo.svg" width="42" alt="Fable Verify logo">
+    Fable Verify
+  </h1>
 
-**Proof-of-done verification for AI coding agents.**
+  <p><strong>Proof-of-done verification for AI coding agents.</strong></p>
 
-Your coding agent says "done." Fable Verify asks: "based on what?"
+  <p>
+    Your coding agent says <code>done</code>. Fable Verify asks:
+    <code>based on what?</code>
+  </p>
 
-Repo-local proof gates for Codex, Claude Code, Cursor, OpenCode, shell-only
-agents, and any coding workflow that can run local commands. Fable Verify turns
-completion claims into acceptance criteria, command output, exit codes, diffs,
-screenshots or browser artifacts, evidence reviews, tamper-evident hashes, JSON
-gate output, and Markdown audit reports.
+  <p>
+    Repo-local proof gates for Codex, Claude Code, Cursor, OpenCode, shell-only
+    agents, and any coding workflow that can run local commands.
+  </p>
 
-[![npm version](https://img.shields.io/npm/v/fable-verify)](https://www.npmjs.com/package/fable-verify)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB)
-![No cloud required](https://img.shields.io/badge/cloud-not_required-16a34a)
-![JSON gate](https://img.shields.io/badge/check---json-111827)
+  <p>
+    <a href="https://www.npmjs.com/package/fable-verify"><img src="https://img.shields.io/npm/v/fable-verify" alt="npm version"></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+    <img src="https://img.shields.io/badge/python-3.10%2B-3776AB" alt="Python 3.10+">
+    <img src="https://img.shields.io/badge/cloud-not_required-16a34a" alt="No cloud required">
+    <img src="https://img.shields.io/badge/check---json-111827" alt="JSON gate">
+  </p>
 
-Proof-of-done reports • PR verification gates • Agent audit trails • Completion
-receipts • Tamper-evident evidence
+  <p>
+    <strong>Proof-of-done reports</strong> &bull; PR verification gates &bull;
+    agent audit trails &bull; completion receipts &bull; tamper-evident evidence
+  </p>
 
-Install • Best Agent Setup • Quickstart • GitHub Actions PR Gate • Realistic
-Demo • What This Is Not
+  <p>
+    <a href="#install">Install</a> &bull;
+    <a href="#best-experience-add-it-to-agentsmd">Best Agent Setup</a> &bull;
+    <a href="#quickstart">Quickstart</a> &bull;
+    <a href="#github-actions-pr-gate">GitHub Actions PR Gate</a> &bull;
+    <a href="#realistic-demo">Realistic Demo</a> &bull;
+    <a href="#what-this-is-not">What This Is Not</a>
+  </p>
+</div>
 
 ---
 
