@@ -31,11 +31,11 @@
 
 ---
 
-Repo-local proof gates for Codex, Claude Code, Cursor, OpenCode, shell-only
-agents, and any coding workflow that can run local commands.
-
-**Proof-of-done reports** &bull; PR verification gates &bull; agent audit trails
-&bull; completion receipts &bull; tamper-evident evidence
+Use Fable Verify after an AI coding agent changes code: it turns acceptance
+criteria, command output, screenshots, PR checks, and review notes into a local
+proof trail before anyone accepts `done`. It works with Codex, Claude Code,
+Cursor, OpenCode, shell-only agents, and CI because it only needs local commands
+and files.
 
 Fable Verify is not a model and it is not tied to Codex, Claude Code, Cursor,
 OpenCode, or any other harness. It gives an agent a plain-file discipline:
