@@ -15,6 +15,7 @@ CLI = ROOT / "bin" / "fable-verify"
 DOCTOR = ROOT / "scripts" / "doctor.py"
 SMOKE_TEST = ROOT / "scripts" / "smoke_test.py"
 EVAL_MATRIX = ROOT / "scripts" / "eval_matrix.py"
+REALISTIC_DEMO = ROOT / "scripts" / "realistic_demo.py"
 SCRIPT_PYTHON = os.environ.get("FABLE_VERIFY_PYTHON") or shutil.which("python3") or sys.executable
 
 
@@ -63,6 +64,7 @@ class FableVerifyCliTest(unittest.TestCase):
             cwd / ".fable-verify" / "goal.md",
             cwd / ".fable-verify" / "acceptance.json",
             cwd / ".fable-verify" / "ledger.json",
+            cwd / ".fable-verify" / "reviews.json",
             cwd / ".fable-verify" / "evidence" / "index.json",
         ]
         return {path.name: path.read_text(encoding="utf-8") for path in paths}
@@ -97,6 +99,7 @@ class FableVerifyCliTest(unittest.TestCase):
                 f"{sys.executable} -c \"{script}\"",
                 check=True,
             )
+        self.review_current_evidence(cwd)
 
     def add_generated_generic_evidence(self, cwd: Path) -> None:
         commands = [
@@ -116,6 +119,39 @@ class FableVerifyCliTest(unittest.TestCase):
                 f"{sys.executable} -c \"{script}\"",
                 check=True,
             )
+        self.review_current_evidence(cwd)
+
+    def review_evidence(
+        self,
+        cwd: Path,
+        criterion_id: str,
+        evidence_id: str,
+        verdict: str = "supports",
+        notes: str | None = None,
+        check: bool = True,
+    ) -> subprocess.CompletedProcess[str]:
+        return self.run_cli(
+            cwd,
+            "review",
+            "--criterion",
+            criterion_id,
+            "--evidence",
+            evidence_id,
+            "--verdict",
+            verdict,
+            "--notes",
+            notes or f"Reviewed {evidence_id} against {criterion_id} and found it supports the criterion.",
+            check=check,
+        )
+
+    def review_current_evidence(self, cwd: Path) -> None:
+        acceptance = self.read_json(cwd / ".fable-verify" / "acceptance.json")
+        for criterion in acceptance["criteria"]:
+            criterion_id = str(criterion["id"])
+            for evidence_id in criterion.get("evidence", []):
+                evidence_id = str(evidence_id)
+                self.run_cli(cwd, "show", evidence_id, check=True)
+                self.review_evidence(cwd, criterion_id, evidence_id)
 
     def test_init_creates_expected_files_and_is_idempotent(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -128,6 +164,7 @@ class FableVerifyCliTest(unittest.TestCase):
             self.assertTrue((cwd / ".fable-verify" / "goal.md").exists())
             self.assertTrue((cwd / ".fable-verify" / "acceptance.json").exists())
             self.assertTrue((cwd / ".fable-verify" / "ledger.json").exists())
+            self.assertTrue((cwd / ".fable-verify" / "reviews.json").exists())
             self.assertTrue((cwd / ".fable-verify" / "evidence").is_dir())
             self.assertTrue((cwd / ".fable-verify" / "reports").is_dir())
 
@@ -213,6 +250,62 @@ class FableVerifyCliTest(unittest.TestCase):
                     self.assertEqual("Bug reproduction or characterization exists.", criteria[0]["description"])
                     self.assertEqual(["test", "log"], criteria[0]["evidence_required"])
                     self.assertEqual(4, len(criteria))
+
+    def test_generated_criteria_use_workflow_templates(self) -> None:
+        cases = [
+            (
+                "Update README docs for install steps",
+                [
+                    ("AC-001", ["diff"], "Documentation-only change is scoped"),
+                    ("AC-002", ["file-read"], "Updated documentation content"),
+                    ("AC-003", ["diff"], "No runtime code changes"),
+                ],
+                "docs-only",
+            ),
+            (
+                "UI change: add settings button layout",
+                [
+                    ("AC-001", ["diff"], "UI change is implemented"),
+                    ("AC-002", ["screenshot"], "Visual evidence captures"),
+                    ("AC-003", ["test"], "Relevant automated verification"),
+                    ("AC-004", ["diff"], "Diff is reviewed"),
+                ],
+                "ui-change",
+            ),
+            (
+                "Refactor verification helpers",
+                [
+                    ("AC-001", ["diff"], "Refactor is scoped"),
+                    ("AC-002", ["test"], "Existing behavior verification"),
+                    ("AC-003", ["diff"], "Public behavior or API changes"),
+                ],
+                "refactor",
+            ),
+            (
+                "Autonomous PR handoff for proof gate workflow",
+                [
+                    ("AC-001", ["file-read"], "PR handoff goal"),
+                    ("AC-002", ["diff"], "Implementation diff/status"),
+                    ("AC-003", ["test"], "Required verification commands"),
+                    ("AC-004", ["file-read"], "Final report or handoff summary"),
+                ],
+                "autonomous-pr-handoff",
+            ),
+        ]
+        for goal, expected, template in cases:
+            with self.subTest(goal=goal):
+                with tempfile.TemporaryDirectory() as temp:
+                    cwd = Path(temp)
+                    self.run_cli(cwd, "init", check=True)
+                    self.run_cli(cwd, "plan", goal, check=True)
+                    criteria = self.read_json(cwd / ".fable-verify" / "acceptance.json")["criteria"]
+
+                    self.assertEqual(len(expected), len(criteria))
+                    for criterion_data, (criterion_id, evidence_required, description_prefix) in zip(criteria, expected):
+                        self.assertEqual(criterion_id, criterion_data["id"])
+                        self.assertEqual(evidence_required, criterion_data["evidence_required"])
+                        self.assertTrue(criterion_data["description"].startswith(description_prefix))
+                        self.assertIn(template, criterion_data["notes"])
 
     def test_generated_bug_criteria_can_pass_before_report(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -349,9 +442,11 @@ class FableVerifyCliTest(unittest.TestCase):
         files = package["files"]
 
         self.assertNotIn("scripts", files)
+        self.assertIn("docs", files)
         self.assertIn("scripts/doctor.py", files)
         self.assertIn("scripts/smoke_test.py", files)
         self.assertIn("scripts/eval_matrix.py", files)
+        self.assertIn("scripts/realistic_demo.py", files)
 
     def test_doctor_passes_with_ignored_initialized_state(self) -> None:
         if not shutil.which("git"):
@@ -394,16 +489,30 @@ class FableVerifyCliTest(unittest.TestCase):
         self.assertIn("PASS", result.stdout)
         self.assertIn("Smoke test passed", result.stdout)
 
+    def test_realistic_demo_script_exercises_real_evidence_loop(self) -> None:
+        if not shutil.which("git"):
+            self.skipTest("git is required for the realistic demo")
+        if not shutil.which("npm"):
+            self.skipTest("npm is required for the realistic demo")
+        result = self.run_script(REALISTIC_DEMO, ROOT)
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("$ git diff -- index.html test/home.test.js", result.stdout)
+        self.assertIn("$ npm test", result.stdout)
+        self.assertIn("$ fable-verify check --json", result.stdout)
+        self.assertIn("Realistic demo passed", result.stdout)
+
     def test_eval_matrix_demonstrates_expected_pass_and_fail_cases(self) -> None:
         result = self.run_script(EVAL_MATRIX, ROOT)
 
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("missing evidence fails (expected gate FAIL)", result.stdout)
         self.assertIn("good command evidence passes (expected gate PASS)", result.stdout)
+        self.assertIn("unreviewed evidence fails (expected gate FAIL)", result.stdout)
         self.assertIn("nonzero command evidence fails (expected gate FAIL)", result.stdout)
         self.assertIn("tampered artifact fails (expected gate FAIL)", result.stdout)
         self.assertIn("missing artifact fails (expected gate FAIL)", result.stdout)
-        self.assertIn("Summary: 5/5 scenarios behaved as expected", result.stdout)
+        self.assertIn("Summary: 6/6 scenarios behaved as expected", result.stdout)
 
     def test_missing_evidence_fails_gate(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -491,6 +600,7 @@ class FableVerifyCliTest(unittest.TestCase):
                 f"{sys.executable} -c 'print(\"old proof\")'",
                 check=True,
             )
+            self.review_current_evidence(cwd)
             first_check = self.run_cli(cwd, "check")
             self.write_acceptance(
                 cwd,
@@ -852,6 +962,7 @@ class FableVerifyCliTest(unittest.TestCase):
                         "--exit-code",
                         "0",
                     )
+                    self.review_current_evidence(cwd)
                     check = self.run_cli(cwd, "check")
 
                     self.assertEqual(add.returncode, 0)
@@ -876,6 +987,7 @@ class FableVerifyCliTest(unittest.TestCase):
                         "--command",
                         f"{sys.executable} -c 'print(\"{evidence_type} ok\")'",
                     )
+                    self.review_current_evidence(cwd)
                     check = self.run_cli(cwd, "check")
                     index = self.read_json(cwd / ".fable-verify" / "evidence" / "index.json")
                     record = index["evidence"][0]
@@ -948,6 +1060,7 @@ class FableVerifyCliTest(unittest.TestCase):
                         "--artifact-path",
                         str(artifact),
                     )
+                    self.review_current_evidence(cwd)
                     check = self.run_cli(cwd, "check")
 
                     self.assertEqual(add.returncode, 0)
@@ -971,6 +1084,7 @@ class FableVerifyCliTest(unittest.TestCase):
                         "--summary",
                         "Self-attested receipt.",
                     )
+                    self.review_current_evidence(cwd)
                     check = self.run_cli(cwd, "check")
                     index = self.read_json(cwd / ".fable-verify" / "evidence" / "index.json")
 
@@ -1029,6 +1143,7 @@ class FableVerifyCliTest(unittest.TestCase):
                 "External log copied",
                 check=True,
             )
+            self.review_current_evidence(cwd)
             check = self.run_cli(cwd, "check")
             index = self.read_json(cwd / ".fable-verify" / "evidence" / "index.json")
             record = index["evidence"][0]
@@ -1040,6 +1155,51 @@ class FableVerifyCliTest(unittest.TestCase):
             self.assertTrue(copied_path.exists())
             self.assertEqual("external proof\n", copied_path.read_text(encoding="utf-8"))
             self.assertEqual(check.returncode, 0)
+
+    def test_evidence_without_review_fails_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            cwd = Path(temp)
+            self.run_cli(cwd, "init", check=True)
+            self.write_acceptance(cwd, [self.single_criterion(["test"])])
+            self.run_cli(
+                cwd,
+                "add-evidence",
+                "--criterion",
+                "AC-001",
+                "--type",
+                "test",
+                "--command",
+                f"{sys.executable} -c 'print(\"ok\")'",
+                check=True,
+            )
+
+            result = self.run_cli(cwd, "check")
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("EV-001 has not been reviewed against the acceptance criterion", result.stdout)
+            self.assertIn("AC-001 is missing required evidence type: test", result.stdout)
+
+    def test_check_json_reports_failures_for_supervisors(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            cwd = Path(temp)
+            self.run_cli(cwd, "init", check=True)
+            self.write_acceptance(cwd, [self.single_criterion(["test"])])
+            ledger_path = cwd / ".fable-verify" / "ledger.json"
+            ledger = self.read_json(ledger_path)
+            ledger["blockers"] = [{"description": "Need reviewer confirmation", "resolved": False}]
+            ledger_path.write_text(json.dumps(ledger, indent=2) + "\n", encoding="utf-8")
+
+            result = self.run_cli(cwd, "check", "--json")
+            payload = json.loads(result.stdout)
+
+            self.assertEqual(result.returncode, 1)
+            self.assertEqual("NOT VERIFIED", payload["verdict"])
+            self.assertFalse(payload["allowed"])
+            self.assertEqual(0, payload["passing_criteria"])
+            self.assertEqual(1, payload["total_criteria"])
+            self.assertEqual(["Need reviewer confirmation"], payload["blockers"])
+            self.assertIn("AC-001 is missing required evidence type: test.", payload["missing_evidence"])
+            self.assertIn("Unresolved blocker: Need reviewer confirmation.", payload["issues"])
 
     def test_valid_evidence_passes_gate(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -1058,11 +1218,179 @@ class FableVerifyCliTest(unittest.TestCase):
                 f"{sys.executable} -c 'print(\"ok\")'",
                 check=True,
             )
+            self.review_current_evidence(cwd)
             result = self.run_cli(cwd, "check")
 
             self.assertIn("Command exit code: 0", add.stdout)
             self.assertEqual(result.returncode, 0)
             self.assertIn("PASS", result.stdout)
+            reviews = self.read_json(cwd / ".fable-verify" / "reviews.json")
+            self.assertEqual("supports", reviews["reviews"][0]["verdict"])
+            self.assertEqual("EV-001", reviews["reviews"][0]["evidence_id"])
+            self.assertIn("artifact_sha256", reviews["reviews"][0])
+            self.assertIn("artifact_size", reviews["reviews"][0])
+
+    def test_check_json_reports_passing_gate_for_supervisors(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            cwd = Path(temp)
+            self.run_cli(cwd, "init", check=True)
+            self.write_acceptance(cwd, [self.single_criterion(["test"])])
+            self.run_cli(
+                cwd,
+                "add-evidence",
+                "--criterion",
+                "AC-001",
+                "--type",
+                "test",
+                "--command",
+                f"{sys.executable} -c 'print(\"ok\")'",
+                check=True,
+            )
+            self.review_current_evidence(cwd)
+
+            result = self.run_cli(cwd, "check", "--json")
+            payload = json.loads(result.stdout)
+
+            self.assertEqual(result.returncode, 0)
+            self.assertEqual("VERIFIED", payload["verdict"])
+            self.assertTrue(payload["allowed"])
+            self.assertEqual(1, payload["passing_criteria"])
+            self.assertEqual(1, payload["total_criteria"])
+            self.assertEqual([], payload["missing_evidence"])
+            self.assertEqual([], payload["blockers"])
+            self.assertEqual([], payload["issues"])
+            self.assertEqual("passed", payload["criteria"][0]["status"])
+
+    def test_unclear_and_does_not_support_reviews_fail_gate(self) -> None:
+        for verdict in ("unclear", "does-not-support"):
+            with self.subTest(verdict=verdict):
+                with tempfile.TemporaryDirectory() as temp:
+                    cwd = Path(temp)
+                    self.run_cli(cwd, "init", check=True)
+                    self.write_acceptance(cwd, [self.single_criterion(["test"])])
+                    self.run_cli(
+                        cwd,
+                        "add-evidence",
+                        "--criterion",
+                        "AC-001",
+                        "--type",
+                        "test",
+                        "--command",
+                        f"{sys.executable} -c 'print(\"ok\")'",
+                        check=True,
+                    )
+                    self.review_evidence(
+                        cwd,
+                        "AC-001",
+                        "EV-001",
+                        verdict=verdict,
+                        notes=f"Review concluded the evidence is {verdict}.",
+                    )
+
+                    result = self.run_cli(cwd, "check")
+
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(f"verdict is {verdict}; only supports can satisfy the gate", result.stdout)
+
+    def test_review_for_wrong_criterion_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            cwd = Path(temp)
+            self.run_cli(cwd, "init", check=True)
+            ac_one = self.single_criterion(["test"])
+            ac_two = {
+                "id": "AC-002",
+                "description": "A separate requirement.",
+                "evidence_required": ["test"],
+                "status": "pending",
+                "evidence": [],
+                "notes": "",
+            }
+            self.write_acceptance(cwd, [ac_one, ac_two])
+            self.run_cli(
+                cwd,
+                "add-evidence",
+                "--criterion",
+                "AC-001",
+                "--type",
+                "test",
+                "--command",
+                f"{sys.executable} -c 'print(\"owned\")'",
+                check=True,
+            )
+
+            result = self.review_evidence(
+                cwd,
+                "AC-002",
+                "EV-001",
+                notes="Trying to review evidence against the wrong criterion.",
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("Evidence EV-001 belongs to AC-001, not AC-002", result.stderr)
+
+    def test_review_requires_non_empty_notes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            cwd = Path(temp)
+            self.run_cli(cwd, "init", check=True)
+            self.write_acceptance(cwd, [self.single_criterion(["test"])])
+            self.run_cli(
+                cwd,
+                "add-evidence",
+                "--criterion",
+                "AC-001",
+                "--type",
+                "test",
+                "--command",
+                f"{sys.executable} -c 'print(\"ok\")'",
+                check=True,
+            )
+
+            result = self.run_cli(
+                cwd,
+                "review",
+                "--criterion",
+                "AC-001",
+                "--evidence",
+                "EV-001",
+                "--verdict",
+                "supports",
+                "--notes",
+                "",
+            )
+
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("Review notes are required", result.stderr)
+
+    def test_show_prints_metadata_and_text_preview(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            cwd = Path(temp)
+            self.run_cli(cwd, "init", check=True)
+            self.write_acceptance(cwd, [self.single_criterion(["test"])])
+            self.run_cli(
+                cwd,
+                "add-evidence",
+                "--criterion",
+                "AC-001",
+                "--type",
+                "test",
+                "--command",
+                f"{sys.executable} -c 'print(\"preview line\")'",
+                check=True,
+            )
+
+            result = self.run_cli(cwd, "show", "EV-001")
+
+            self.assertEqual(result.returncode, 0)
+            self.assertIn("Evidence: EV-001", result.stdout)
+            self.assertIn("Criterion owner: AC-001", result.stdout)
+            self.assertIn("Type: test", result.stdout)
+            self.assertIn("Command:", result.stdout)
+            self.assertIn("Exit code: 0", result.stdout)
+            self.assertIn("Artifact path: .fable-verify/evidence/EV-001.log", result.stdout)
+            self.assertIn("Current artifact SHA-256:", result.stdout)
+            self.assertIn("Text preview:", result.stdout)
+            self.assertIn("preview line", result.stdout)
 
     def test_manual_evidence_is_weak_for_technical_criteria(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -1104,6 +1432,7 @@ class FableVerifyCliTest(unittest.TestCase):
                 str(artifact),
                 check=True,
             )
+            self.review_current_evidence(cwd)
             first_check = self.run_cli(cwd, "check")
             artifact.write_text("tampered file-read proof\n", encoding="utf-8")
 
@@ -1112,6 +1441,7 @@ class FableVerifyCliTest(unittest.TestCase):
             self.assertEqual(first_check.returncode, 0)
             self.assertNotEqual(second_check.returncode, 0)
             self.assertIn("tampered", second_check.stdout)
+            self.assertIn("latest review RV-001 artifact integrity failed", second_check.stdout)
             self.assertIn("missing required evidence type: file-read", second_check.stdout)
 
     def test_missing_hash_metadata_for_strong_evidence_fails_gate(self) -> None:
@@ -1165,6 +1495,7 @@ class FableVerifyCliTest(unittest.TestCase):
                 f"{sys.executable} -c 'print(\"ok\")'",
                 check=True,
             )
+            self.review_current_evidence(cwd)
             ledger_path = cwd / ".fable-verify" / "ledger.json"
             ledger = self.read_json(ledger_path)
             ledger["blockers"] = [{"id": "B-001", "description": "Need reviewer confirmation", "resolved": False}]
@@ -1191,6 +1522,7 @@ class FableVerifyCliTest(unittest.TestCase):
                 f"{sys.executable} -c 'print(\"ok\")'",
                 check=True,
             )
+            self.review_current_evidence(cwd)
 
             report = self.run_cli(cwd, "report", check=True)
             report_path = cwd / report.stdout.splitlines()[0]

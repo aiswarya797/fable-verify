@@ -19,6 +19,7 @@ EXPECTED_STATE_FILES = [
     Path(".fable-verify/goal.md"),
     Path(".fable-verify/acceptance.json"),
     Path(".fable-verify/ledger.json"),
+    Path(".fable-verify/reviews.json"),
     Path(".fable-verify/evidence/index.json"),
 ]
 
@@ -116,6 +117,7 @@ def check_state(cwd: Path) -> Check:
     for path in [
         cwd / ".fable-verify/acceptance.json",
         cwd / ".fable-verify/ledger.json",
+        cwd / ".fable-verify/reviews.json",
         cwd / ".fable-verify/evidence/index.json",
     ]:
         issue = json_state_issue(path)

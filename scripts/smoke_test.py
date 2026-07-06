@@ -49,6 +49,23 @@ def run_cli(cli: str, cwd: Path, *args: str, expect: int = 0) -> subprocess.Comp
     return result
 
 
+def review_evidence(cli: str, cwd: Path, criterion: str, evidence: str, notes: str) -> None:
+    run_cli(cli, cwd, "show", evidence)
+    run_cli(
+        cli,
+        cwd,
+        "review",
+        "--criterion",
+        criterion,
+        "--evidence",
+        evidence,
+        "--verdict",
+        "supports",
+        "--notes",
+        notes,
+    )
+
+
 def main() -> int:
     cli = resolve_cli()
     with tempfile.TemporaryDirectory(prefix="fable-verify-smoke-") as temp:
@@ -111,6 +128,11 @@ def main() -> int:
             "--command",
             python_command("print('scoped diff reviewed')"),
         )
+        review_evidence(cli, cwd, "AC-001", "EV-001", "Test log shows the reproduction command completed with exit code 0.")
+        review_evidence(cli, cwd, "AC-001", "EV-002", "Log output describes the pre-fix redirect loop observation.")
+        review_evidence(cli, cwd, "AC-002", "EV-003", "Diff evidence log records the implementation review output.")
+        review_evidence(cli, cwd, "AC-003", "EV-004", "Verification test log shows the regression check completed with exit code 0.")
+        review_evidence(cli, cwd, "AC-004", "EV-005", "Diff review log records a scoped change review.")
         check = run_cli(cli, cwd, "check")
         if "PASS" not in check.stdout:
             raise SystemExit("check did not print PASS")
