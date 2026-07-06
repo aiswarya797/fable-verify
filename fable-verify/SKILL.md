@@ -1,6 +1,15 @@
 ---
 name: fable-verify
-description: Use Fable Verify to make coding-agent completion claims evidence-backed with repo-local acceptance criteria, proof artifacts, checks, and reports.
+description: >-
+  Use Fable Verify whenever a coding agent needs to make, verify, or defend a
+  completion claim for code work: done, fixed, correct, verified, ready for
+  review, safe to merge, or "how do you know?". Use it for proof-of-done,
+  acceptance judges, PR verification gates, audit trails, completion receipts,
+  supervised or autonomous coding handoffs, command output and exit-code
+  evidence, stale-proof checks, tamper-evident artifacts, and repo-local reports
+  tied to acceptance criteria. If no current Fable Verify proof exists, do not
+  answer from memory alone; create or collect evidence, run the verification
+  gate, or report the work as unverified.
 ---
 
 # Fable Verify Agent Instructions
@@ -17,25 +26,60 @@ read files and run local commands.
 Follow this operating loop:
 
 ```text
-Goal -> Spec -> Plan -> Work -> Evidence -> Verification Gate -> Final Report
+Goal -> Spec -> Plan -> Work -> Evidence -> Self-Review -> Verification Gate -> Final Report
 ```
 
 The agent must not claim completion unless every acceptance criterion has
-supporting evidence and `fable-verify check` passes.
+supporting evidence, that evidence has been explicitly reviewed against the
+acceptance criterion, and `fable-verify check` passes.
+
+## Completion Claim Workflow
+
+Use this bounded workflow whenever you are about to say work is done, fixed,
+correct, verified, ready for review, safe to merge, or when the user asks "how
+do you know?", "what proof do we have?", "did this solve the issue?", or a
+similar completion-proof question.
+
+1. Run `fable-verify status`.
+2. If a current Fable Verify plan and evidence already exist, inspect the
+   relevant evidence with `fable-verify show EV-###` or the appropriate viewer.
+3. Run or rerun only the missing verification steps needed for the current
+   acceptance criteria. Attach each result with `fable-verify add-evidence`.
+4. Record explicit reviews with `fable-verify review` that explain why each
+   artifact supports, does not support, or is unclear for its criterion.
+5. Run `fable-verify check`.
+6. If `check` passes, generate `fable-verify report` and answer from the current
+   criteria, evidence IDs, commands/artifacts, review notes, and verdict.
+7. If `check` fails, do not claim completion. Continue only when the next action
+   is clear and bounded. Otherwise record a blocker and report the exact
+   unverified criteria or evidence gaps.
+
+Do not loop forever. After a repeated command failure, missing dependency,
+unclear acceptance criterion, unavailable browser/screenshot artifact, or other
+blocked proof path, stop the verification attempt, record the blocker in
+`.fable-verify/ledger.json`, and say the work is not verified yet.
 
 Evidence only counts when it is explicitly attached to the current acceptance
 criterion's `evidence` array. Reports show current proof separately from
 historical receipts. `test`, `build`, `lint`, and `typecheck` evidence must
 include command provenance and an exit code. Current proof artifacts are hashed
 with SHA-256 and byte size; if an artifact is missing, mutated, or lacks
-integrity metadata, the verification gate must fail.
+integrity metadata, the verification gate must fail. Reviews are also hashed
+against the artifact bytes observed during review; if the artifact later changes,
+the supporting review is invalid.
 
 ## Enforcement Boundary
 
 Fable Verify verifies completion evidence. It checks whether acceptance criteria
 have current-plan evidence attachments, correctly owned evidence records, real
 artifact paths, artifact integrity metadata, successful command evidence, no
-weak evidence substitutes for technical proof, and no unresolved blockers.
+weak evidence substitutes for technical proof, explicit supporting review
+verdicts with notes, review-time artifact integrity, and no unresolved blockers.
+
+This is a Fable-like self-checking discipline, not full Fable parity. The CLI
+does not semantically understand screenshots, diffs, logs, or code. The agent or
+human reviewer must inspect the artifact and record whether it supports the
+criterion.
 
 The current CLI does not block edits before planning, enforce forbidden paths,
 install pre-edit hooks, or stop an agent that chooses to ignore it. Use it as a
@@ -57,9 +101,13 @@ check` runs. Those controls are not part of the current lightweight CLI.
 4. Run `fable-verify plan "<goal>"`, provide the goal through stdin, or write the
    goal to `.fable-verify/goal.md` and run `fable-verify plan`.
 5. Review `.fable-verify/acceptance.json`.
-6. Refine the criteria until each item is observable, testable, and has explicit
+6. Treat generated criteria as workflow templates. The CLI has starting
+   templates for bug fixes, UI changes, refactors, docs-only changes, and
+   autonomous PR handoffs, but the agent still has to make the criteria fit the
+   task.
+7. Refine the criteria until each item is observable, testable, and has explicit
    `evidence_required` values.
-7. Ask clarifying questions only when the goal cannot be made testable from the
+8. Ask clarifying questions only when the goal cannot be made testable from the
    available context.
 
 ## During Work
@@ -74,6 +122,10 @@ For every implementation step:
 - add evidence immediately after running tests, builds, lints, typechecks,
   browser checks, screenshot captures, file reads, or diff reviews;
 - keep evidence artifact paths real and reviewable.
+- inspect current evidence with `fable-verify show EV-###` or an appropriate
+  viewer before recording a review;
+- record a review with `fable-verify review` and concrete notes explaining why
+  the artifact supports, does not support, or is unclear for the criterion.
 
 Do not mark a criterion complete without evidence.
 
@@ -151,14 +203,69 @@ criterion lists that evidence ID. Old records left in
 `.fable-verify/evidence/index.json` are historical receipts, not proof for a new
 criterion that happens to reuse the same ID.
 
+## Review Rules
+
+Before final completion, every current evidence artifact must be reviewed against
+its owning acceptance criterion.
+
+Use `show` before review:
+
+```sh
+fable-verify show EV-001
+```
+
+For log-like artifacts, `show` prints metadata and a text preview. For
+screenshots/images, it prints metadata and the artifact path; the reviewer must
+open and inspect the image. Do not claim the CLI visually understood it.
+
+Record a review:
+
+```sh
+fable-verify review --criterion AC-001 --evidence EV-001 --verdict supports --notes "Test log shows npm test completed with exit code 0 and all suites passed."
+```
+
+Supported verdicts:
+
+```text
+supports does-not-support unclear
+```
+
+Only `supports` can satisfy the verification gate. Missing notes, unknown
+criteria/evidence, evidence owned by a different criterion, evidence not
+attached to the criterion, and missing artifacts must fail review recording.
+
+Review records live in `.fable-verify/reviews.json` and store review id,
+criterion id, evidence id, verdict, notes, timestamp, reviewer kind/name, and
+the artifact hash/size observed at review time. If the artifact changes after
+review, the review no longer supports the gate.
+
 ## Before Final Answer
 
 1. Run `fable-verify status`.
-2. Run `fable-verify check`.
-3. If `check` fails, continue working or clearly report what remains unverified.
-4. Run `fable-verify report`.
-5. In the final response, summarize the current proof evidence and final
+2. Inspect current evidence with `fable-verify show EV-###` or an appropriate
+   artifact viewer.
+3. Record reviews with `fable-verify review` for every current evidence
+   artifact. `fable-verify check` alone is not enough.
+4. Run `fable-verify check`, or `fable-verify check --json` when a supervisor,
+   CI job, or PR workflow needs machine-readable output.
+5. If `check` fails, continue working or clearly report what remains unverified.
+6. Run `fable-verify report`.
+7. In the final response, summarize the current proof evidence, self-review, and
    verdict. Do not merely say "done."
+
+## PR And CI Gate Use
+
+For PR verification workflows, `fable-verify check --json` is the supervisor or
+CI-friendly output. It reports the verdict, whether completion is allowed,
+passing criteria count, missing evidence, blockers, issues, and per-criterion
+status.
+
+Use it alongside normal CI, branch protection, code review, security review, and
+repository permissions. Fable Verify records and checks completion proof; it
+does not sandbox an agent, enforce permissions, or prevent edits.
+
+Do not auto-create `supports` reviews inside CI just to make the gate pass. A
+review is an agent or human judgment made after inspecting the artifact.
 
 ## Forbidden Behavior
 
@@ -173,6 +280,9 @@ criterion that happens to reuse the same ID.
 - Do not edit or replace evidence artifacts after capture without recording new
   evidence.
 - Do not ignore failed checks.
+- Do not skip evidence review and rely on `fable-verify check` alone.
+- Do not record `supports` unless you inspected the artifact and can explain why
+  it supports the criterion in the notes.
 - Do not delete verification files to make checks pass.
 - Do not mark criteria as passed by hand without matching evidence.
 - Do not rely on old evidence from `index.json` unless it is explicitly
@@ -222,6 +332,10 @@ Final completion is allowed only when:
 - every evidence artifact path exists and points to a regular file;
 - every current proof artifact has SHA-256 and byte size metadata and still
   matches that metadata;
+- every current evidence artifact has a latest applicable review with verdict
+  `supports` and non-empty notes;
+- every supporting review's recorded artifact hash and byte size still match the
+  current artifact;
 - no unresolved blockers remain;
 - `fable-verify check` prints `PASS`.
 
@@ -231,9 +345,13 @@ If any of those are false, the final answer must say what remains unverified.
 
 The report's current proof sections only include evidence attached to the
 current acceptance criteria. Current proof rows show evidence type, strength,
-command/artifact, artifact size, SHA-256 hash, and integrity status. Historical
-receipts appear in a clearly labeled, compact Historical Evidence section
-summarized by count and type, with at most the latest 10 historical records
-shown. Full historical receipts remain in `.fable-verify/evidence/index.json`,
-but they do not support the current goal unless reattached to the current
-criterion and still pass integrity checks.
+command/artifact, artifact size, SHA-256 hash, and integrity status. The
+Semantic Evidence Review section shows review verdicts, notes, artifact
+integrity, and review integrity. This section records explicit agent/human
+review; it is not proof that the CLI semantically understood screenshots, diffs,
+logs, or code. Historical receipts appear in a clearly labeled, compact
+Historical Evidence section summarized by count and type, with at most the
+latest 10 historical records shown. Full historical receipts remain in
+`.fable-verify/evidence/index.json`, but they do not support the current goal
+unless reattached to the current criterion and still pass integrity and review
+checks.

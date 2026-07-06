@@ -16,6 +16,7 @@
   },
   "files": [
     "bin/fable-verify",
+    "docs",
     "examples",
     "fable-verify/SKILL.md",
     "fable_verify/__init__.py",
@@ -24,6 +25,7 @@
     "README.md",
     "scripts/doctor.py",
     "scripts/eval_matrix.py",
+    "scripts/realistic_demo.py",
     "scripts/smoke_test.py"
   ],
   "keywords": [
@@ -33,12 +35,15 @@
     "codex",
     "claude",
     "evidence",
-    "audit"
+    "audit",
+    "proof-gate",
+    "pr-verification"
   ],
   "scripts": {
     "test": "python3 -B -m unittest discover -s tests",
     "doctor": "python3 -B scripts/doctor.py",
     "smoke": "python3 -B scripts/smoke_test.py",
+    "demo:realistic": "python3 -B scripts/realistic_demo.py",
     "eval:matrix": "python3 -B scripts/eval_matrix.py",
     "pack:check": "npm pack --dry-run",
     "preflight": "npm test && npm run doctor && npm run smoke && npm run eval:matrix && npm run pack:check"

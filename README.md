@@ -5,21 +5,25 @@ It is not a model and it is not tied to Codex, Claude Code, Cursor, OpenCode, or
 any other harness. It gives an agent a plain-file discipline:
 
 ```text
-Goal -> Spec -> Plan -> Work -> Evidence -> Verification Gate -> Final Report
+Goal -> Spec -> Plan -> Work -> Evidence -> Self-Review -> Verification Gate -> Final Report
 ```
 
 The central rule is simple: when an agent uses Fable Verify as its completion
 gate, it should not claim "done" unless every acceptance criterion has
-supporting evidence and `fable-verify check` passes. Fable Verify turns agent
-work into an auditable proof trail by checking that proof has the right shape,
-is attached to the current criterion, and has not changed since capture.
+supporting evidence, that evidence has been explicitly reviewed against the
+criterion, and `fable-verify check` passes. Fable Verify turns agent work into
+an auditable proof trail by checking that proof has the right shape, is attached
+to the current criterion, was reviewed with notes, and has not changed since
+capture or review.
 
 Evidence only counts when it is attached to the current acceptance criterion.
 Reports separate current proof from historical receipts. `test`, `build`,
 `lint`, and `typecheck` evidence require command provenance and an exit code,
 whether Fable Verify runs the command or records an externally captured artifact.
-Artifacts are hashed with SHA-256 and byte size at capture time; `check` fails
-if a current proof artifact is missing, mutated, or lacks integrity metadata.
+Artifacts are hashed with SHA-256 and byte size at capture time and again at
+review time; `check` fails if a current proof artifact is missing, mutated,
+lacks integrity metadata, has not been reviewed, has a non-supporting review
+verdict, or no longer matches the bytes observed during review.
 
 ## Install
 
@@ -33,6 +37,27 @@ fable-verify init
 
 For local development from this repository, call `./bin/fable-verify`.
 
+## Best Experience: Add It To AGENTS.md
+
+Fable Verify works best when it is part of the agent's normal completion loop,
+not something a user has to remember to request. Add a repo instruction such as
+this to `AGENTS.md`, `CLAUDE.md`, or your agent runner's system instructions:
+
+```md
+Before claiming any coding task is done, fixed, correct, verified, ready for
+review, or safe to merge, use Fable Verify. If the user asks "how do you know?",
+answer from current Fable Verify evidence: acceptance criteria, evidence IDs,
+commands or artifacts, review notes, and the `fable-verify check` verdict.
+
+If no current Fable Verify proof exists, do not answer from memory alone. Create
+or collect the missing evidence, run the verification gate, or say the work is
+not verified yet and report the exact missing criteria or blockers.
+```
+
+The skill description helps agents auto-load Fable Verify for completion-proof
+questions. A repo instruction makes that behavior mandatory for the project, and
+a CI or PR gate can make skipped proof visible before merge.
+
 ## What It Does
 
 Fable Verify creates a `.fable-verify/` workspace in your repository:
@@ -42,6 +67,7 @@ Fable Verify creates a `.fable-verify/` workspace in your repository:
   goal.md
   acceptance.json
   ledger.json
+  reviews.json
   evidence/
     index.json
   reports/
@@ -53,7 +79,10 @@ Agents and humans use these files to:
 - track a live requirements ledger;
 - attach evidence from tests, builds, lints, screenshots, browser checks, logs,
   file reads, diffs, and user confirmation;
+- inspect evidence artifacts and record explicit `supports`,
+  `does-not-support`, or `unclear` review verdicts;
 - run a machine-checkable verification gate;
+- emit JSON gate output for supervisors, CI jobs, and PR workflows;
 - generate a final evidence-backed delivery report.
 
 Everything is local. There are no required cloud services and no hidden state.
@@ -77,6 +106,9 @@ proof, machine paths, and transient reports do not ship as product files.
   evidence is recorded honestly and fails the gate.
 - **Tamper-evident artifacts:** evidence records store SHA-256, byte size, MIME
   hint, and capture time; the gate recomputes hashes before allowing completion.
+- **Explicit self-review:** current evidence must have a latest applicable
+  review with verdict `supports`, non-empty notes, and matching artifact hash
+  and byte size from the time of review.
 - **Weak evidence stays weak:** `log` and `manual-user-confirmation` evidence
   are labeled weak and cannot substitute for missing strong proof.
 - **Blockers block:** unresolved blockers in `.fable-verify/ledger.json` keep
@@ -110,19 +142,22 @@ Weak evidence:
   `file-read`, or `screenshot`.
 
 Every captured or copied artifact gets SHA-256 hash, byte size, MIME hint, and
-capture timestamp metadata. If the artifact is edited or deleted after capture,
-or if a legacy evidence record lacks hash/size metadata, `fable-verify check`
-marks it tampered, missing, or legacy unverified and fails the gate.
+capture timestamp metadata. Every review records the SHA-256 hash and byte size
+that the reviewer observed. If the artifact is edited or deleted after capture
+or review, or if a legacy evidence record lacks hash/size metadata,
+`fable-verify check` marks it tampered, missing, or legacy unverified and fails
+the gate.
 
 This is artifact tamper evidence, not cryptographic non-repudiation. The
 repo-local JSON files are still editable by someone with write access, so use
 normal code review, CI, and repository controls when you need an immutable or
 signed audit log.
 
-Fable Verify checks proof shape, ownership, command exit status, and artifact
-integrity. It does not prove that a screenshot semantically shows the right UI
-or that a diff implements the correct product decision; reviewers still inspect
-the attached artifacts.
+Fable Verify checks proof shape, ownership, command exit status, artifact
+integrity, and explicit review records. It does not prove that a screenshot
+semantically shows the right UI or that a diff implements the correct product
+decision; agents or humans still inspect the attached artifacts and record that
+judgment in `reviews.json`.
 
 ## What This Is Not
 
@@ -131,12 +166,28 @@ or security review. It verifies whether an agent has enough repo-local evidence
 to support a completion claim. You should still run your normal tests, reviews,
 security checks, and release process.
 
+## Outreach And PR Gate Positioning
+
+Use the short version honestly: Fable Verify records proof of completion for
+coding agents. It stores acceptance criteria, evidence artifacts, explicit
+review verdicts, artifact hashes, machine-readable gate output, and final
+reports in repo-local files.
+
+It does not enforce permissions, sandbox an agent, prevent edits, or replace CI,
+code review, security review, or existing permission systems. It complements
+those controls by making the final "done" claim auditable.
+
+See [`docs/outreach-positioning.md`](docs/outreach-positioning.md) for safe
+positioning snippets and [`docs/github-actions.md`](docs/github-actions.md) for
+using `fable-verify check --json` as a PR gate.
+
 ## Enforcement Boundary
 
-Fable Verify currently verifies completion evidence. It checks acceptance
-criteria, current-plan evidence attachment, evidence ownership, artifact
-existence, artifact integrity, command exit codes, weak evidence labels, and
-unresolved blockers before a final completion claim.
+Fable Verify currently verifies completion evidence and evidence-backed
+self-review. It checks acceptance criteria, current-plan evidence attachment,
+evidence ownership, artifact existence, artifact integrity, command exit codes,
+weak evidence labels, review verdicts and notes, review-time artifact integrity,
+and unresolved blockers before a final completion claim.
 
 It does not currently block file edits before planning, enforce forbidden paths,
 install pre-edit hooks, or prevent an agent from ignoring the CLI. Treat it as a
@@ -163,6 +214,16 @@ fable-verify add-evidence --criterion AC-001 --type log --command "python -c \"p
 fable-verify add-evidence --criterion AC-002 --type diff --command "python -c \"print('diff reviewed: login redirect fix')\""
 fable-verify add-evidence --criterion AC-003 --type test --command "python -c \"print('redirect regression test passed')\""
 fable-verify add-evidence --criterion AC-004 --type diff --command "python -c \"print('scoped diff reviewed')\""
+fable-verify show EV-001
+fable-verify review --criterion AC-001 --evidence EV-001 --verdict supports --notes "Reproduction test log shows exit code 0 and the expected redirect bug output."
+fable-verify show EV-002
+fable-verify review --criterion AC-001 --evidence EV-002 --verdict supports --notes "Log output documents the pre-fix redirect loop observation."
+fable-verify show EV-003
+fable-verify review --criterion AC-002 --evidence EV-003 --verdict supports --notes "Diff evidence output supports that the login redirect fix was reviewed."
+fable-verify show EV-004
+fable-verify review --criterion AC-003 --evidence EV-004 --verdict supports --notes "Regression test log shows the verification command exited 0."
+fable-verify show EV-005
+fable-verify review --criterion AC-004 --evidence EV-005 --verdict supports --notes "Diff review output supports that the change was scoped."
 fable-verify check
 fable-verify report
 ```
@@ -187,6 +248,11 @@ is a no-op unless `--force` is used. A no-op replan does not update
 `.fable-verify/goal.md`, `ledger.json`, acceptance criteria, or evidence
 attachments, because old proof must not silently appear to support a newly
 supplied goal.
+
+The planner includes lightweight templates for common coding-agent workflows:
+bug fixes, UI changes, refactors, docs-only changes, and autonomous PR handoffs.
+They are starting points, not a substitute for reviewing and sharpening the
+criteria for the actual task.
 
 Use `--force` only when you intentionally want to replace the current acceptance
 plan. Historical receipts remain in `.fable-verify/evidence/index.json`, but the
@@ -251,6 +317,51 @@ Example:
 Manual user confirmation is weak evidence. It only satisfies a criterion when the
 criterion explicitly requires `manual-user-confirmation`.
 
+### `fable-verify show`
+
+Prints evidence metadata before review:
+
+- evidence ID, owning criterion, type, strength, summary;
+- command and exit code, when present;
+- artifact path, recorded hash/size, current hash/size, and integrity status;
+- latest review status, when present;
+- a text preview for log-like UTF-8 artifacts.
+
+For screenshots and other images, `show` prints metadata and the artifact path.
+It does not claim to visually understand the image; the reviewer must inspect
+the file with an appropriate viewer.
+
+Example:
+
+```sh
+./bin/fable-verify show EV-001
+```
+
+### `fable-verify review`
+
+Records an explicit review verdict for one evidence artifact against one
+acceptance criterion:
+
+```sh
+./bin/fable-verify review \
+  --criterion AC-003 \
+  --evidence EV-001 \
+  --verdict supports \
+  --notes "Test log shows python -m unittest completed with exit code 0."
+```
+
+Supported verdicts are:
+
+```text
+supports does-not-support unclear
+```
+
+Only `supports` can satisfy `check`. Review notes are required. The command
+rejects unknown criteria, unknown evidence, evidence owned by a different
+criterion, evidence not attached to the criterion, and missing artifacts. Each
+review records the current artifact SHA-256 hash and byte size, so later
+artifact mutation invalidates the review.
+
 ### `fable-verify check`
 
 Runs the verification gate. It prints `PASS` only when completion is allowed.
@@ -270,8 +381,30 @@ The gate fails if:
 - any evidence artifact path is missing or points to a directory;
 - any current proof artifact is missing hash/size metadata or no longer matches
   its recorded SHA-256 and byte size;
+- any current evidence has no review, an empty review note, or a latest review
+  verdict other than `supports`;
+- the latest supporting review's recorded artifact hash/size no longer matches
+  the current artifact;
 - any criterion relies on weak evidence to mask missing strong proof;
 - `.fable-verify/ledger.json` contains unresolved blockers.
+
+Use `--json` when a supervisor, CI job, or PR workflow needs machine-readable
+output:
+
+```sh
+fable-verify check --json
+```
+
+The JSON output includes:
+
+- `verdict`: `VERIFIED`, `PARTIALLY VERIFIED`, or `NOT VERIFIED`;
+- `allowed`: whether the final completion claim is currently allowed;
+- `passing_criteria` and `total_criteria`;
+- `missing_evidence`;
+- `blockers`;
+- `issues`;
+- `criteria` with criterion IDs, descriptions, required evidence, attached
+  evidence, and current status.
 
 ### `fable-verify report`
 
@@ -283,6 +416,8 @@ Generates a Markdown report in `.fable-verify/reports/` with:
   acceptance criteria;
 - current proof commands and exit codes;
 - proof strength, artifact size, SHA-256 hash, and integrity status;
+- semantic evidence review table with review verdicts, notes, artifact
+  integrity, and review-time integrity;
 - compact historical evidence section for receipts still present in `index.json`
   but not attached to the current plan, summarized by count and type with at most
   the latest 10 records shown;
@@ -299,10 +434,17 @@ Generates a Markdown report in `.fable-verify/reports/` with:
 5. Work against the criteria, keeping `.fable-verify/ledger.json` current.
 6. Add evidence immediately after each test, build, lint, browser check, file
    read, screenshot, or diff review.
-7. Run `fable-verify check` before claiming completion.
-8. If the gate passes, run `fable-verify report` and summarize the current proof
+7. Inspect each current evidence artifact with `fable-verify show EV-###`, or an
+   equivalent artifact viewer for screenshots/images.
+8. Record a review for each current evidence artifact with
+   `fable-verify review`, using `supports`, `does-not-support`, or `unclear`
+   and concrete notes.
+9. Run `fable-verify check` before claiming completion. `check` alone is not
+   enough unless the evidence has already been inspected and reviewed.
+10. If the gate passes, run `fable-verify report` and summarize the current proof
    evidence.
-9. If the gate fails, continue working or report exactly what remains unverified.
+11. If the gate fails, continue working or report exactly what remains
+    unverified.
 
 The portable agent instruction file lives at
 [`fable-verify/SKILL.md`](fable-verify/SKILL.md).
@@ -364,6 +506,33 @@ External artifacts copied into the repo also include:
 }
 ```
 
+## Review Record Schema
+
+Review records are stored in `.fable-verify/reviews.json`. The latest review for
+a criterion/evidence pair is the one used by `check`.
+
+```json
+{
+  "id": "RV-001",
+  "criterion_id": "AC-001",
+  "criterion_description": "Relevant automated verification passes.",
+  "evidence_id": "EV-001",
+  "evidence_type": "test",
+  "verdict": "supports",
+  "notes": "Test log shows npm test completed with exit code 0.",
+  "reviewed_at": "2026-07-03T00:00:00+00:00",
+  "reviewer_kind": "agent",
+  "reviewer_name": "codex",
+  "artifact_path": ".fable-verify/evidence/EV-001.log",
+  "artifact_sha256": "f4b2...",
+  "artifact_size": 1234,
+  "artifact_integrity": "sha256"
+}
+```
+
+The review is a recorded reviewer judgment. It is not an assertion that Fable
+Verify semantically understood the artifact.
+
 ## Example Workflow
 
 Goal:
@@ -395,12 +564,31 @@ cd "$tmpdir"
 "$FABLE_VERIFY" add-evidence --criterion AC-002 --type diff --command "python -c \"print('diff reviewed: login redirect fix')\""
 "$FABLE_VERIFY" add-evidence --criterion AC-003 --type test --command "python -c \"print('redirect regression test passed')\""
 "$FABLE_VERIFY" add-evidence --criterion AC-004 --type diff --command "python -c \"print('scoped diff reviewed')\""
+"$FABLE_VERIFY" show EV-001
+"$FABLE_VERIFY" review --criterion AC-001 --evidence EV-001 --verdict supports --notes "Reproduction test log shows exit code 0 and the expected redirect bug output."
+"$FABLE_VERIFY" show EV-002
+"$FABLE_VERIFY" review --criterion AC-001 --evidence EV-002 --verdict supports --notes "Log output documents the pre-fix redirect loop observation."
+"$FABLE_VERIFY" show EV-003
+"$FABLE_VERIFY" review --criterion AC-002 --evidence EV-003 --verdict supports --notes "Diff evidence output supports that the login redirect fix was reviewed."
+"$FABLE_VERIFY" show EV-004
+"$FABLE_VERIFY" review --criterion AC-003 --evidence EV-004 --verdict supports --notes "Regression test log shows the verification command exited 0."
+"$FABLE_VERIFY" show EV-005
+"$FABLE_VERIFY" review --criterion AC-004 --evidence EV-005 --verdict supports --notes "Diff review output supports that the change was scoped."
 "$FABLE_VERIFY" check
 "$FABLE_VERIFY" report
 ```
 
 See [`examples/simple-fix/README.md`](examples/simple-fix/README.md) for a
-demo-sized scenario.
+demo-sized scenario and
+[`examples/realistic-pr-verification/README.md`](examples/realistic-pr-verification/README.md)
+for a temporary git repo demo that records real `git diff`, `npm test`,
+screenshot, review, JSON check, and report evidence.
+
+Run the realistic demo from this repository:
+
+```sh
+npm run demo:realistic
+```
 
 ## Development
 
@@ -420,6 +608,12 @@ Run a full happy-path smoke check in a temporary repository:
 
 ```sh
 npm run smoke
+```
+
+Run the realistic PR-verification demo:
+
+```sh
+npm run demo:realistic
 ```
 
 Run the canned evaluation matrix. It intentionally verifies both expected
@@ -442,6 +636,10 @@ the `fable-verify/` skill directory.
 ```sh
 python ~/.codex/skills/.system/skill-creator/scripts/quick_validate.py fable-verify
 ```
+
+For PR gate examples, see
+[`docs/github-actions.md`](docs/github-actions.md). For outreach-safe wording,
+see [`docs/outreach-positioning.md`](docs/outreach-positioning.md).
 
 ## Release Hygiene
 

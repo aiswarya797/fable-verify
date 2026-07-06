@@ -3,7 +3,9 @@
 This demo shows the intended Fable Verify shape for a small bug fix.
 Evidence that proves tests or diffs is command-backed. The log receipt is weak
 evidence and only satisfies the criterion that explicitly asks for a `log`.
-Every captured artifact is hashed so later edits fail the gate.
+Every captured artifact is hashed so later edits fail the gate. The agent also
+inspects each evidence artifact and records a review verdict before `check` can
+pass.
 
 ## Goal
 
@@ -41,6 +43,16 @@ cd "$tmpdir"
 "$FABLE_VERIFY" add-evidence --criterion AC-002 --type diff --command "python -c \"print('diff reviewed: login redirect fix')\""
 "$FABLE_VERIFY" add-evidence --criterion AC-003 --type test --command "python -c \"print('redirect regression test passed')\""
 "$FABLE_VERIFY" add-evidence --criterion AC-004 --type diff --command "python -c \"print('scoped diff reviewed')\""
+"$FABLE_VERIFY" show EV-001
+"$FABLE_VERIFY" review --criterion AC-001 --evidence EV-001 --verdict supports --notes "Reproduction test log shows exit code 0 and the expected redirect bug output."
+"$FABLE_VERIFY" show EV-002
+"$FABLE_VERIFY" review --criterion AC-001 --evidence EV-002 --verdict supports --notes "Log output documents the pre-fix redirect loop observation."
+"$FABLE_VERIFY" show EV-003
+"$FABLE_VERIFY" review --criterion AC-002 --evidence EV-003 --verdict supports --notes "Diff evidence output supports that the login redirect fix was reviewed."
+"$FABLE_VERIFY" show EV-004
+"$FABLE_VERIFY" review --criterion AC-003 --evidence EV-004 --verdict supports --notes "Regression test log shows the verification command exited 0."
+"$FABLE_VERIFY" show EV-005
+"$FABLE_VERIFY" review --criterion AC-004 --evidence EV-005 --verdict supports --notes "Diff review output supports that the change was scoped."
 "$FABLE_VERIFY" check
 "$FABLE_VERIFY" report
 ```
