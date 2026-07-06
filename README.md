@@ -12,21 +12,11 @@
   </p>
 
   <p>
-    Repo-local proof gates for Codex, Claude Code, Cursor, OpenCode, shell-only
-    agents, and any coding workflow that can run local commands.
-  </p>
-
-  <p>
     <a href="https://www.npmjs.com/package/fable-verify"><img src="https://img.shields.io/npm/v/fable-verify" alt="npm version"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
     <img src="https://img.shields.io/badge/python-3.10%2B-3776AB" alt="Python 3.10+">
     <img src="https://img.shields.io/badge/cloud-not_required-16a34a" alt="No cloud required">
     <img src="https://img.shields.io/badge/check---json-111827" alt="JSON gate">
-  </p>
-
-  <p>
-    <strong>Proof-of-done reports</strong> &bull; PR verification gates &bull;
-    agent audit trails &bull; completion receipts &bull; tamper-evident evidence
   </p>
 
   <p>
@@ -40,6 +30,12 @@
 </div>
 
 ---
+
+Repo-local proof gates for Codex, Claude Code, Cursor, OpenCode, shell-only
+agents, and any coding workflow that can run local commands.
+
+**Proof-of-done reports** &bull; PR verification gates &bull; agent audit trails
+&bull; completion receipts &bull; tamper-evident evidence
 
 Fable Verify is not a model and it is not tied to Codex, Claude Code, Cursor,
 OpenCode, or any other harness. It gives an agent a plain-file discipline:
