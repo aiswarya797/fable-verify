@@ -31,35 +31,16 @@
 
 ---
 
-Use Fable Verify after an AI coding agent changes code: it turns acceptance
-criteria, command output, screenshots, PR checks, and review notes into a local
-proof trail before anyone accepts `done`. It works with Codex, Claude Code,
-Cursor, OpenCode, shell-only agents, and CI because it only needs local commands
-and files.
-
-Fable Verify is not a model and it is not tied to Codex, Claude Code, Cursor,
-OpenCode, or any other harness. It gives an agent a plain-file discipline:
+Fable Verify is a local verification gate for AI coding agents, not a model or
+sandbox. It turns `done` into acceptance criteria, evidence, review notes, and a
+`fable-verify check` verdict.
 
 ```text
-Goal -> Spec -> Plan -> Work -> Evidence -> Self-Review -> Verification Gate -> Final Report
+Goal -> Criteria -> Evidence -> Review -> Check -> Report
 ```
 
-The central rule is simple: when an agent uses Fable Verify as its completion
-gate, it should not claim "done" unless every acceptance criterion has
-supporting evidence, that evidence has been explicitly reviewed against the
-criterion, and `fable-verify check` passes. Fable Verify turns agent work into
-an auditable proof trail by checking that proof has the right shape, is attached
-to the current criterion, was reviewed with notes, and has not changed since
-capture or review.
-
-Evidence only counts when it is attached to the current acceptance criterion.
-Reports separate current proof from historical receipts. `test`, `build`,
-`lint`, and `typecheck` evidence require command provenance and an exit code,
-whether Fable Verify runs the command or records an externally captured artifact.
-Artifacts are hashed with SHA-256 and byte size at capture time and again at
-review time; `check` fails if a current proof artifact is missing, mutated,
-lacks integrity metadata, has not been reviewed, has a non-supporting review
-verdict, or no longer matches the bytes observed during review.
+It works with Codex, Claude Code, Cursor, OpenCode, shell-only agents, and CI
+because it only needs repo files and local commands.
 
 ## Install
 
