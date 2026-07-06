@@ -1,4 +1,4 @@
-# Fable Verify: Proof-of-Done Verification for AI Coding Agents
+# Fable Verify
 
 **Proof-of-done verification for AI coding agents.**
 
