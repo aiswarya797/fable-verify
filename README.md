@@ -1,18 +1,18 @@
 <div align="center">
   <h1>
-    <img src="assets/fable-verify-logo.svg" width="42" alt="Fable Verify logo">
-    Fable Verify
+    <img src="assets/agent-audits-logo.svg" width="42" alt="Agent Audits logo">
+    Agent Audits
   </h1>
 
-  <p><strong>Proof-of-done verification for AI coding agents.</strong></p>
+  <p><strong>Repo-local proof-of-done loops for AI coding agents.</strong></p>
 
   <p>
-    Your coding agent says <code>done</code>. Fable Verify asks:
+    Your coding agent says <code>done</code>. Agent Audits asks:
     <code>based on what?</code>
   </p>
 
   <p>
-    <a href="https://www.npmjs.com/package/fable-verify"><img src="https://img.shields.io/npm/v/fable-verify" alt="npm version"></a>
+    <a href="https://www.npmjs.com/package/agent-audits"><img src="https://img.shields.io/npm/v/agent-audits" alt="npm version"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
     <img src="https://img.shields.io/badge/python-3.10%2B-3776AB" alt="Python 3.10+">
     <img src="https://img.shields.io/badge/cloud-not_required-16a34a" alt="No cloud required">
@@ -32,9 +32,9 @@
 
 ---
 
-Fable Verify is a local verification gate for AI coding agents, not a model or
-sandbox. It turns `done` into acceptance criteria, evidence, review notes, and a
-`fable-verify check` verdict.
+Agent Audits is a repo-local verification loop and completion gate for AI coding
+agents, not a model or sandbox. It turns `done` into acceptance criteria,
+evidence, review notes, and an `agent-audits check` verdict.
 
 ```text
 Goal -> Criteria -> Evidence -> Review -> Check -> Report
@@ -45,15 +45,15 @@ because it only needs repo files and local commands.
 
 ## Install
 
-Fable Verify ships as a small npm package that runs a Python CLI. It requires
+Agent Audits ships as a small npm package that runs a Python CLI. It requires
 Python 3.10 or newer on your `PATH`.
 
 ```sh
-npm install -g fable-verify
-fable-verify init
+npm install -g agent-audits
+agent-audits init
 ```
 
-From this repository, use `./bin/fable-verify`.
+From this repository, use `./bin/agent-audits`.
 
 ## Agent Setup
 
@@ -62,39 +62,39 @@ runner instructions:
 
 ```md
 Before claiming a coding task is done, fixed, correct, verified, ready for
-review, or safe to merge, use Fable Verify.
+review, or safe to merge, use Agent Audits.
 
-If the user asks "how do you know?", answer from current Fable Verify evidence:
+If the user asks "how do you know?", answer from current Agent Audits evidence:
 acceptance criteria, evidence IDs, commands or artifacts, review notes, and the
-`fable-verify check` verdict.
+`agent-audits check` verdict.
 
 If no current proof exists, collect it or say the work is not verified yet.
 ```
 
-The portable Codex skill lives at [`fable-verify/SKILL.md`](fable-verify/SKILL.md).
+The portable Codex skill lives at [`agent-audits/SKILL.md`](agent-audits/SKILL.md).
 
 ## Quickstart
 
 Use this pattern after an agent changes code:
 
 ```sh
-fable-verify init
-fable-verify plan "Fix the login redirect bug"
+agent-audits init
+agent-audits plan "Fix the login redirect bug"
 
-fable-verify add-evidence \
+agent-audits add-evidence \
   --criterion AC-001 \
   --type test \
   --command "npm test"
 
-fable-verify show EV-001
-fable-verify review \
+agent-audits show EV-001
+agent-audits review \
   --criterion AC-001 \
   --evidence EV-001 \
   --verdict supports \
   --notes "npm test completed with exit code 0."
 
-fable-verify check --json
-fable-verify report
+agent-audits check --json
+agent-audits report
 ```
 
 Repeat `add-evidence`, `show`, and `review` for every acceptance criterion.
@@ -102,10 +102,10 @@ Repeat `add-evidence`, `show`, and `review` for every acceptance criterion.
 
 ## How It Works
 
-`fable-verify init` creates a local `.fable-verify/` workspace:
+`agent-audits init` creates a local `.agent-audits/` workspace:
 
 ```text
-.fable-verify/
+.agent-audits/
   goal.md
   acceptance.json
   ledger.json
@@ -123,37 +123,37 @@ The workflow is intentionally plain:
 5. `check` decides whether completion is allowed.
 6. `report` writes a Markdown proof receipt.
 
-Everything stays in repo-local files. `.fable-verify/` is ignored by default so
+Everything stays in repo-local files. `.agent-audits/` is ignored by default so
 local proof, machine paths, and temporary reports do not ship accidentally.
 
 ## CLI Reference
 
 | Command | Purpose |
 | --- | --- |
-| `fable-verify init` | Create `.fable-verify/`. Use `--force` only when replacing existing state. |
-| `fable-verify plan "<goal>"` | Create starter acceptance criteria for the task. Templates cover bug fixes, UI changes, refactors, docs-only changes, and autonomous PR handoffs. |
-| `fable-verify status` | Show criteria count, passing criteria, missing evidence, blockers, and whether completion is allowed. |
-| `fable-verify add-evidence` | Attach `test`, `build`, `lint`, `typecheck`, `diff`, `screenshot`, `browser`, `log`, `file-read`, or `manual-user-confirmation` evidence. |
-| `fable-verify show EV-001` | Inspect evidence metadata, artifact integrity, command output, and latest review state. |
-| `fable-verify review` | Record `supports`, `does-not-support`, or `unclear` with notes for one criterion/evidence pair. |
-| `fable-verify check` | Fail or pass the completion gate. Use `--json` for supervisors, CI, and PR workflows. |
-| `fable-verify report` | Generate a Markdown report under `.fable-verify/reports/`. |
+| `agent-audits init` | Create `.agent-audits/`. Use `--force` only when replacing existing state. |
+| `agent-audits plan "<goal>"` | Create starter acceptance criteria for the task. Templates cover bug fixes, UI changes, refactors, docs-only changes, and autonomous PR handoffs. |
+| `agent-audits status` | Show criteria count, passing criteria, missing evidence, blockers, and whether completion is allowed. |
+| `agent-audits add-evidence` | Attach `test`, `build`, `lint`, `typecheck`, `diff`, `screenshot`, `browser`, `log`, `file-read`, or `manual-user-confirmation` evidence. |
+| `agent-audits show EV-001` | Inspect evidence metadata, artifact integrity, command output, and latest review state. |
+| `agent-audits review` | Record `supports`, `does-not-support`, or `unclear` with notes for one criterion/evidence pair. |
+| `agent-audits check` | Fail or pass the completion gate. Use `--json` for supervisors, CI, and PR workflows. |
+| `agent-audits report` | Generate a Markdown report under `.agent-audits/reports/`. |
 
 Most evidence should come from commands:
 
 ```sh
-fable-verify add-evidence \
+agent-audits add-evidence \
   --criterion AC-003 \
   --type test \
   --command "python -m unittest discover -s tests"
 ```
 
-For artifacts captured outside Fable Verify, pass `--artifact-path`. If the
+For artifacts captured outside Agent Audits, pass `--artifact-path`. If the
 artifact represents a command result, also pass `--exit-code`.
 
 ## Proof Rules
 
-`fable-verify check` passes only when current criteria have reviewed, valid
+`agent-audits check` passes only when current criteria have reviewed, valid
 evidence. The important rules:
 
 - Evidence must be attached to the current criterion.
@@ -166,14 +166,14 @@ evidence. The important rules:
   time. Missing or changed artifacts fail the gate.
 - The latest review for each current evidence item must be `supports` and must
   include notes.
-- Unresolved blockers in `.fable-verify/ledger.json` keep completion closed.
+- Unresolved blockers in `.agent-audits/ledger.json` keep completion closed.
 
 Reports separate current proof from historical receipts so old evidence does
 not silently support a new goal.
 
 ## CI And Demos
 
-Use `fable-verify check --json` when another tool needs a machine-readable gate.
+Use `agent-audits check --json` when another tool needs a machine-readable gate.
 The JSON includes verdict, allowed status, passing criteria, missing evidence,
 blockers, issues, and per-criterion status.
 
@@ -190,16 +190,16 @@ npm run demo:realistic
 
 ## Limits
 
-Fable Verify is not a sandbox, permission system, edit blocker, CI replacement,
+Agent Audits is not a sandbox, permission system, edit blocker, CI replacement,
 security review, or signed audit log. It verifies whether the agent has current
 repo-local proof for a completion claim.
 
 It also does not semantically understand screenshots, browser output, or diffs.
 An agent or human still has to inspect the artifact and record the judgment with
-`fable-verify review`.
+`agent-audits review`.
 
 Use normal code review, CI, repository permissions, and security checks for
-enforcement. Use Fable Verify for completion evidence and auditable handoff.
+enforcement. Use Agent Audits for completion evidence and auditable handoff.
 
 ## Development
 
@@ -218,5 +218,5 @@ evaluation matrix, and package dry-run.
 Validate the bundled Codex skill from your Codex home:
 
 ```sh
-python ~/.codex/skills/.system/skill-creator/scripts/quick_validate.py fable-verify
+python ~/.codex/skills/.system/skill-creator/scripts/quick_validate.py agent-audits
 ```

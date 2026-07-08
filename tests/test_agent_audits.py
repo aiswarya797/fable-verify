@@ -11,15 +11,15 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CLI = ROOT / "bin" / "fable-verify"
+CLI = ROOT / "bin" / "agent-audits"
 DOCTOR = ROOT / "scripts" / "doctor.py"
 SMOKE_TEST = ROOT / "scripts" / "smoke_test.py"
 EVAL_MATRIX = ROOT / "scripts" / "eval_matrix.py"
 REALISTIC_DEMO = ROOT / "scripts" / "realistic_demo.py"
-SCRIPT_PYTHON = os.environ.get("FABLE_VERIFY_PYTHON") or shutil.which("python3") or sys.executable
+SCRIPT_PYTHON = os.environ.get("AGENT_AUDITS_PYTHON") or shutil.which("python3") or sys.executable
 
 
-class FableVerifyCliTest(unittest.TestCase):
+class AgentAuditsCliTest(unittest.TestCase):
     def run_cli(self, cwd: Path, *args: str, check: bool = False) -> subprocess.CompletedProcess[str]:
         result = subprocess.run(
             [str(CLI), *args],
@@ -33,7 +33,7 @@ class FableVerifyCliTest(unittest.TestCase):
         return result
 
     def run_script(self, script: Path, cwd: Path) -> subprocess.CompletedProcess[str]:
-        env = {**os.environ, "FABLE_VERIFY_BIN": str(CLI)}
+        env = {**os.environ, "AGENT_AUDITS_BIN": str(CLI)}
         return subprocess.run(
             [SCRIPT_PYTHON, "-B", str(script)],
             cwd=cwd,
@@ -44,7 +44,7 @@ class FableVerifyCliTest(unittest.TestCase):
         )
 
     def write_acceptance(self, cwd: Path, criteria: list[dict[str, object]]) -> None:
-        path = cwd / ".fable-verify" / "acceptance.json"
+        path = cwd / ".agent-audits" / "acceptance.json"
         path.write_text(json.dumps({"criteria": criteria}, indent=2) + "\n", encoding="utf-8")
 
     def read_json(self, path: Path) -> dict[str, object]:
@@ -61,11 +61,11 @@ class FableVerifyCliTest(unittest.TestCase):
 
     def state_snapshot(self, cwd: Path) -> dict[str, str]:
         paths = [
-            cwd / ".fable-verify" / "goal.md",
-            cwd / ".fable-verify" / "acceptance.json",
-            cwd / ".fable-verify" / "ledger.json",
-            cwd / ".fable-verify" / "reviews.json",
-            cwd / ".fable-verify" / "evidence" / "index.json",
+            cwd / ".agent-audits" / "goal.md",
+            cwd / ".agent-audits" / "acceptance.json",
+            cwd / ".agent-audits" / "ledger.json",
+            cwd / ".agent-audits" / "reviews.json",
+            cwd / ".agent-audits" / "evidence" / "index.json",
         ]
         return {path.name: path.read_text(encoding="utf-8") for path in paths}
 
@@ -145,7 +145,7 @@ class FableVerifyCliTest(unittest.TestCase):
         )
 
     def review_current_evidence(self, cwd: Path) -> None:
-        acceptance = self.read_json(cwd / ".fable-verify" / "acceptance.json")
+        acceptance = self.read_json(cwd / ".agent-audits" / "acceptance.json")
         for criterion in acceptance["criteria"]:
             criterion_id = str(criterion["id"])
             for evidence_id in criterion.get("evidence", []):
@@ -159,14 +159,14 @@ class FableVerifyCliTest(unittest.TestCase):
             first = self.run_cli(cwd, "init", check=True)
             second = self.run_cli(cwd, "init", check=True)
 
-            self.assertIn("Initialized Fable Verify", first.stdout)
+            self.assertIn("Initialized Agent Audits", first.stdout)
             self.assertIn("already initialized", second.stdout)
-            self.assertTrue((cwd / ".fable-verify" / "goal.md").exists())
-            self.assertTrue((cwd / ".fable-verify" / "acceptance.json").exists())
-            self.assertTrue((cwd / ".fable-verify" / "ledger.json").exists())
-            self.assertTrue((cwd / ".fable-verify" / "reviews.json").exists())
-            self.assertTrue((cwd / ".fable-verify" / "evidence").is_dir())
-            self.assertTrue((cwd / ".fable-verify" / "reports").is_dir())
+            self.assertTrue((cwd / ".agent-audits" / "goal.md").exists())
+            self.assertTrue((cwd / ".agent-audits" / "acceptance.json").exists())
+            self.assertTrue((cwd / ".agent-audits" / "ledger.json").exists())
+            self.assertTrue((cwd / ".agent-audits" / "reviews.json").exists())
+            self.assertTrue((cwd / ".agent-audits" / "evidence").is_dir())
+            self.assertTrue((cwd / ".agent-audits" / "reports").is_dir())
 
     def test_plan_without_force_does_not_record_new_goal_over_existing_criteria(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -192,8 +192,8 @@ class FableVerifyCliTest(unittest.TestCase):
             self.assertEqual(second_check.returncode, 0)
             self.assertIn(old_goal, status.stdout)
             self.assertNotIn(new_goal, status.stdout)
-            self.assertNotIn(new_goal, (cwd / ".fable-verify" / "goal.md").read_text(encoding="utf-8"))
-            ledger = self.read_json(cwd / ".fable-verify" / "ledger.json")
+            self.assertNotIn(new_goal, (cwd / ".agent-audits" / "goal.md").read_text(encoding="utf-8"))
+            ledger = self.read_json(cwd / ".agent-audits" / "ledger.json")
             self.assertEqual(old_goal, ledger["goal"])
 
     def test_plan_same_goal_with_existing_criteria_is_idempotent(self) -> None:
@@ -221,7 +221,7 @@ class FableVerifyCliTest(unittest.TestCase):
                     cwd = Path(temp)
                     self.run_cli(cwd, "init", check=True)
                     self.run_cli(cwd, "plan", goal, check=True)
-                    criteria = self.read_json(cwd / ".fable-verify" / "acceptance.json")["criteria"]
+                    criteria = self.read_json(cwd / ".agent-audits" / "acceptance.json")["criteria"]
                     descriptions = [criterion["description"] for criterion in criteria]
 
                     self.assertEqual(expected_count, len(criteria))
@@ -245,7 +245,7 @@ class FableVerifyCliTest(unittest.TestCase):
                     self.run_cli(cwd, "init", check=True)
 
                     self.run_cli(cwd, "plan", goal, check=True)
-                    criteria = self.read_json(cwd / ".fable-verify" / "acceptance.json")["criteria"]
+                    criteria = self.read_json(cwd / ".agent-audits" / "acceptance.json")["criteria"]
 
                     self.assertEqual("Bug reproduction or characterization exists.", criteria[0]["description"])
                     self.assertEqual(["test", "log"], criteria[0]["evidence_required"])
@@ -298,7 +298,7 @@ class FableVerifyCliTest(unittest.TestCase):
                     cwd = Path(temp)
                     self.run_cli(cwd, "init", check=True)
                     self.run_cli(cwd, "plan", goal, check=True)
-                    criteria = self.read_json(cwd / ".fable-verify" / "acceptance.json")["criteria"]
+                    criteria = self.read_json(cwd / ".agent-audits" / "acceptance.json")["criteria"]
 
                     self.assertEqual(len(expected), len(criteria))
                     for criterion_data, (criterion_id, evidence_required, description_prefix) in zip(criteria, expected):
@@ -315,7 +315,7 @@ class FableVerifyCliTest(unittest.TestCase):
             self.add_generated_bug_evidence(cwd)
 
             check = self.run_cli(cwd, "check")
-            reports_before = list((cwd / ".fable-verify" / "reports").glob("*.md"))
+            reports_before = list((cwd / ".agent-audits" / "reports").glob("*.md"))
             report = self.run_cli(cwd, "report", check=True)
 
             self.assertEqual(check.returncode, 0)
@@ -330,12 +330,12 @@ class FableVerifyCliTest(unittest.TestCase):
             self.run_cli(cwd, "plan", "Bug: login redirect fails", check=True)
             self.add_generated_bug_evidence(cwd)
             first_check = self.run_cli(cwd, "check")
-            old_index = self.read_json(cwd / ".fable-verify" / "evidence" / "index.json")
+            old_index = self.read_json(cwd / ".agent-audits" / "evidence" / "index.json")
 
             forced = self.run_cli(cwd, "plan", "--force", "Add a tiny verification demo")
-            ledger_after_force = self.read_json(cwd / ".fable-verify" / "ledger.json")
-            acceptance_after_force = self.read_json(cwd / ".fable-verify" / "acceptance.json")
-            index_after_force = self.read_json(cwd / ".fable-verify" / "evidence" / "index.json")
+            ledger_after_force = self.read_json(cwd / ".agent-audits" / "ledger.json")
+            acceptance_after_force = self.read_json(cwd / ".agent-audits" / "acceptance.json")
+            index_after_force = self.read_json(cwd / ".agent-audits" / "evidence" / "index.json")
             second_check = self.run_cli(cwd, "check")
 
             self.assertEqual(first_check.returncode, 0)
@@ -377,7 +377,7 @@ class FableVerifyCliTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             cwd = Path(temp)
             self.run_cli(cwd, "init", check=True)
-            self.assertEqual([], self.read_json(cwd / ".fable-verify" / "acceptance.json")["criteria"])
+            self.assertEqual([], self.read_json(cwd / ".agent-audits" / "acceptance.json")["criteria"])
 
             self.run_cli(cwd, "plan", "Bug: login redirect fails", check=True)
             first_check = self.run_cli(cwd, "check")
@@ -399,8 +399,8 @@ class FableVerifyCliTest(unittest.TestCase):
             self.assertIn("VERIFIED", (cwd / report_two).read_text(encoding="utf-8"))
 
             self.run_cli(cwd, "plan", "--force", "Add a tiny verification demo", check=True)
-            forced_ledger = self.read_json(cwd / ".fable-verify" / "ledger.json")
-            forced_acceptance = self.read_json(cwd / ".fable-verify" / "acceptance.json")
+            forced_ledger = self.read_json(cwd / ".agent-audits" / "ledger.json")
+            forced_acceptance = self.read_json(cwd / ".agent-audits" / "acceptance.json")
             forced_check = self.run_cli(cwd, "check")
 
             self.assertEqual("active", forced_ledger["status"])
@@ -410,17 +410,17 @@ class FableVerifyCliTest(unittest.TestCase):
 
             self.add_generated_generic_evidence(cwd)
             final_check = self.run_cli(cwd, "check")
-            final_ledger = self.read_json(cwd / ".fable-verify" / "ledger.json")
+            final_ledger = self.read_json(cwd / ".agent-audits" / "ledger.json")
 
             self.assertEqual(final_check.returncode, 0)
             self.assertEqual("VERIFIED", final_ledger["final_verdict"])
 
     def test_release_visible_files_exclude_generated_artifacts_and_local_paths(self) -> None:
         gitignore = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
-        self.assertIn(".fable-verify/", gitignore)
+        self.assertIn(".agent-audits/", gitignore)
         self.assertIn("__pycache__/", gitignore)
 
-        ignored_dirs = {".git", ".fable-verify", "__pycache__"}
+        ignored_dirs = {".git", ".agent-audits", "__pycache__"}
         forbidden_markers = ["/" + "Users/", "/var/" + "folders/"]
         offenders: list[str] = []
         for path in ROOT.rglob("*"):
@@ -454,17 +454,17 @@ class FableVerifyCliTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             cwd = Path(temp)
             subprocess.run(["git", "init"], cwd=cwd, text=True, capture_output=True, check=True)
-            (cwd / ".gitignore").write_text(".fable-verify/\n", encoding="utf-8")
+            (cwd / ".gitignore").write_text(".agent-audits/\n", encoding="utf-8")
             self.run_cli(cwd, "init", check=True)
 
             result = self.run_script(DOCTOR, cwd)
 
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertIn("PASS Python version", result.stdout)
-            self.assertIn("PASS fable-verify availability", result.stdout)
+            self.assertIn("PASS agent-audits availability", result.stdout)
             self.assertIn("PASS writable repository", result.stdout)
-            self.assertIn("PASS .fable-verify state", result.stdout)
-            self.assertIn("PASS .fable-verify ignored", result.stdout)
+            self.assertIn("PASS .agent-audits state", result.stdout)
+            self.assertIn("PASS .agent-audits ignored", result.stdout)
 
     def test_doctor_fails_when_state_is_not_ignored(self) -> None:
         if not shutil.which("git"):
@@ -477,15 +477,15 @@ class FableVerifyCliTest(unittest.TestCase):
             result = self.run_script(DOCTOR, cwd)
 
             self.assertNotEqual(result.returncode, 0)
-            self.assertIn("FAIL .fable-verify ignored", result.stdout)
+            self.assertIn("FAIL .agent-audits ignored", result.stdout)
             self.assertIn("is not ignored by git", result.stdout)
 
     def test_smoke_script_exercises_full_loop(self) -> None:
         result = self.run_script(SMOKE_TEST, ROOT)
 
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("$ fable-verify init", result.stdout)
-        self.assertIn("$ fable-verify check", result.stdout)
+        self.assertIn("$ agent-audits init", result.stdout)
+        self.assertIn("$ agent-audits check", result.stdout)
         self.assertIn("PASS", result.stdout)
         self.assertIn("Smoke test passed", result.stdout)
 
@@ -499,7 +499,7 @@ class FableVerifyCliTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("$ git diff -- index.html test/home.test.js", result.stdout)
         self.assertIn("$ npm test", result.stdout)
-        self.assertIn("$ fable-verify check --json", result.stdout)
+        self.assertIn("$ agent-audits check --json", result.stdout)
         self.assertIn("Realistic demo passed", result.stdout)
 
     def test_eval_matrix_demonstrates_expected_pass_and_fail_cases(self) -> None:
@@ -573,7 +573,7 @@ class FableVerifyCliTest(unittest.TestCase):
                 f"{sys.executable} -c 'print(\"owned\")'",
                 check=True,
             )
-            acceptance_path = cwd / ".fable-verify" / "acceptance.json"
+            acceptance_path = cwd / ".agent-audits" / "acceptance.json"
             acceptance = self.read_json(acceptance_path)
             acceptance["criteria"][1]["evidence"] = ["EV-001"]
             acceptance_path.write_text(json.dumps(acceptance, indent=2) + "\n", encoding="utf-8")
@@ -621,7 +621,7 @@ class FableVerifyCliTest(unittest.TestCase):
             self.assertEqual(first_check.returncode, 0)
             self.assertNotEqual(second_check.returncode, 0)
             self.assertIn("AC-001 is missing required evidence type: test", second_check.stdout)
-            acceptance = self.read_json(cwd / ".fable-verify" / "acceptance.json")
+            acceptance = self.read_json(cwd / ".agent-audits" / "acceptance.json")
             self.assertEqual([], acceptance["criteria"][0]["evidence"])
 
     def test_missing_artifact_fails_gate(self) -> None:
@@ -639,13 +639,13 @@ class FableVerifyCliTest(unittest.TestCase):
                         "type": "test",
                         "command": "npm test",
                         "exit_code": 0,
-                        "artifact_path": ".fable-verify/evidence/missing.log",
+                        "artifact_path": ".agent-audits/evidence/missing.log",
                         "summary": "Pretend tests passed",
                         "created_at": "2026-01-01T00:00:00+00:00",
                     }
                 ]
             }
-            (cwd / ".fable-verify" / "evidence" / "index.json").write_text(
+            (cwd / ".agent-audits" / "evidence" / "index.json").write_text(
                 json.dumps(index, indent=2) + "\n",
                 encoding="utf-8",
             )
@@ -660,8 +660,8 @@ class FableVerifyCliTest(unittest.TestCase):
             cwd = Path(temp)
             self.run_cli(cwd, "init", check=True)
             self.write_acceptance(cwd, [self.single_criterion(["log"])])
-            acceptance_before = (cwd / ".fable-verify" / "acceptance.json").read_text(encoding="utf-8")
-            index_before = (cwd / ".fable-verify" / "evidence" / "index.json").read_text(encoding="utf-8")
+            acceptance_before = (cwd / ".agent-audits" / "acceptance.json").read_text(encoding="utf-8")
+            index_before = (cwd / ".agent-audits" / "evidence" / "index.json").read_text(encoding="utf-8")
 
             result = self.run_cli(
                 cwd,
@@ -678,11 +678,11 @@ class FableVerifyCliTest(unittest.TestCase):
             self.assertIn("Missing artifact path", result.stderr)
             self.assertEqual(
                 acceptance_before,
-                (cwd / ".fable-verify" / "acceptance.json").read_text(encoding="utf-8"),
+                (cwd / ".agent-audits" / "acceptance.json").read_text(encoding="utf-8"),
             )
             self.assertEqual(
                 index_before,
-                (cwd / ".fable-verify" / "evidence" / "index.json").read_text(encoding="utf-8"),
+                (cwd / ".agent-audits" / "evidence" / "index.json").read_text(encoding="utf-8"),
             )
 
     def test_command_like_passive_artifacts_fail_without_mutating_state(self) -> None:
@@ -734,7 +734,7 @@ class FableVerifyCliTest(unittest.TestCase):
                     }
                 ]
             }
-            (cwd / ".fable-verify" / "evidence" / "index.json").write_text(
+            (cwd / ".agent-audits" / "evidence" / "index.json").write_text(
                 json.dumps(index, indent=2) + "\n",
                 encoding="utf-8",
             )
@@ -906,9 +906,9 @@ class FableVerifyCliTest(unittest.TestCase):
             self.write_acceptance(cwd, [self.single_criterion(["test"])])
             artifact = cwd / "external-command.log"
             artifact.write_text("captured elsewhere\n", encoding="utf-8")
-            acceptance_before = (cwd / ".fable-verify" / "acceptance.json").read_text(encoding="utf-8")
-            ledger_before = (cwd / ".fable-verify" / "ledger.json").read_text(encoding="utf-8")
-            index_before = (cwd / ".fable-verify" / "evidence" / "index.json").read_text(encoding="utf-8")
+            acceptance_before = (cwd / ".agent-audits" / "acceptance.json").read_text(encoding="utf-8")
+            ledger_before = (cwd / ".agent-audits" / "ledger.json").read_text(encoding="utf-8")
+            index_before = (cwd / ".agent-audits" / "evidence" / "index.json").read_text(encoding="utf-8")
 
             result = self.run_cli(
                 cwd,
@@ -927,15 +927,15 @@ class FableVerifyCliTest(unittest.TestCase):
             self.assertIn("requires --exit-code", result.stderr)
             self.assertEqual(
                 acceptance_before,
-                (cwd / ".fable-verify" / "acceptance.json").read_text(encoding="utf-8"),
+                (cwd / ".agent-audits" / "acceptance.json").read_text(encoding="utf-8"),
             )
             self.assertEqual(
                 ledger_before,
-                (cwd / ".fable-verify" / "ledger.json").read_text(encoding="utf-8"),
+                (cwd / ".agent-audits" / "ledger.json").read_text(encoding="utf-8"),
             )
             self.assertEqual(
                 index_before,
-                (cwd / ".fable-verify" / "evidence" / "index.json").read_text(encoding="utf-8"),
+                (cwd / ".agent-audits" / "evidence" / "index.json").read_text(encoding="utf-8"),
             )
 
     def test_external_command_artifact_with_exit_code_zero_passes(self) -> None:
@@ -989,7 +989,7 @@ class FableVerifyCliTest(unittest.TestCase):
                     )
                     self.review_current_evidence(cwd)
                     check = self.run_cli(cwd, "check")
-                    index = self.read_json(cwd / ".fable-verify" / "evidence" / "index.json")
+                    index = self.read_json(cwd / ".agent-audits" / "evidence" / "index.json")
                     record = index["evidence"][0]
 
                     self.assertEqual(add.returncode, 0)
@@ -1022,7 +1022,7 @@ class FableVerifyCliTest(unittest.TestCase):
                         "9",
                     )
                     check = self.run_cli(cwd, "check")
-                    index = self.read_json(cwd / ".fable-verify" / "evidence" / "index.json")
+                    index = self.read_json(cwd / ".agent-audits" / "evidence" / "index.json")
 
                     self.assertEqual(add.returncode, 1)
                     self.assertEqual(9, index["evidence"][0]["exit_code"])
@@ -1086,7 +1086,7 @@ class FableVerifyCliTest(unittest.TestCase):
                     )
                     self.review_current_evidence(cwd)
                     check = self.run_cli(cwd, "check")
-                    index = self.read_json(cwd / ".fable-verify" / "evidence" / "index.json")
+                    index = self.read_json(cwd / ".agent-audits" / "evidence" / "index.json")
 
                     self.assertEqual(add.returncode, 0)
                     self.assertEqual(check.returncode, 0)
@@ -1110,7 +1110,7 @@ class FableVerifyCliTest(unittest.TestCase):
                 "A person approved it.",
                 check=True,
             )
-            index_path = cwd / ".fable-verify" / "evidence" / "index.json"
+            index_path = cwd / ".agent-audits" / "evidence" / "index.json"
             index = self.read_json(index_path)
             index["evidence"][0]["strength"] = "strong"
             index_path.write_text(json.dumps(index, indent=2) + "\n", encoding="utf-8")
@@ -1145,11 +1145,11 @@ class FableVerifyCliTest(unittest.TestCase):
             )
             self.review_current_evidence(cwd)
             check = self.run_cli(cwd, "check")
-            index = self.read_json(cwd / ".fable-verify" / "evidence" / "index.json")
+            index = self.read_json(cwd / ".agent-audits" / "evidence" / "index.json")
             record = index["evidence"][0]
             copied_path = cwd / record["artifact_path"]
 
-            self.assertIn(".fable-verify/evidence/EV-001-outside.log", add.stdout)
+            self.assertIn(".agent-audits/evidence/EV-001-outside.log", add.stdout)
             self.assertEqual(record["artifact_policy"], "copied-external-to-evidence")
             self.assertEqual(record["source_artifact_path"], str(external.resolve()))
             self.assertTrue(copied_path.exists())
@@ -1184,7 +1184,7 @@ class FableVerifyCliTest(unittest.TestCase):
             cwd = Path(temp)
             self.run_cli(cwd, "init", check=True)
             self.write_acceptance(cwd, [self.single_criterion(["test"])])
-            ledger_path = cwd / ".fable-verify" / "ledger.json"
+            ledger_path = cwd / ".agent-audits" / "ledger.json"
             ledger = self.read_json(ledger_path)
             ledger["blockers"] = [{"description": "Need reviewer confirmation", "resolved": False}]
             ledger_path.write_text(json.dumps(ledger, indent=2) + "\n", encoding="utf-8")
@@ -1224,7 +1224,7 @@ class FableVerifyCliTest(unittest.TestCase):
             self.assertIn("Command exit code: 0", add.stdout)
             self.assertEqual(result.returncode, 0)
             self.assertIn("PASS", result.stdout)
-            reviews = self.read_json(cwd / ".fable-verify" / "reviews.json")
+            reviews = self.read_json(cwd / ".agent-audits" / "reviews.json")
             self.assertEqual("supports", reviews["reviews"][0]["verdict"])
             self.assertEqual("EV-001", reviews["reviews"][0]["evidence_id"])
             self.assertIn("artifact_sha256", reviews["reviews"][0])
@@ -1387,7 +1387,7 @@ class FableVerifyCliTest(unittest.TestCase):
             self.assertIn("Type: test", result.stdout)
             self.assertIn("Command:", result.stdout)
             self.assertIn("Exit code: 0", result.stdout)
-            self.assertIn("Artifact path: .fable-verify/evidence/EV-001.log", result.stdout)
+            self.assertIn("Artifact path: .agent-audits/evidence/EV-001.log", result.stdout)
             self.assertIn("Current artifact SHA-256:", result.stdout)
             self.assertIn("Text preview:", result.stdout)
             self.assertIn("preview line", result.stdout)
@@ -1468,7 +1468,7 @@ class FableVerifyCliTest(unittest.TestCase):
                     }
                 ]
             }
-            (cwd / ".fable-verify" / "evidence" / "index.json").write_text(
+            (cwd / ".agent-audits" / "evidence" / "index.json").write_text(
                 json.dumps(index, indent=2) + "\n",
                 encoding="utf-8",
             )
@@ -1496,7 +1496,7 @@ class FableVerifyCliTest(unittest.TestCase):
                 check=True,
             )
             self.review_current_evidence(cwd)
-            ledger_path = cwd / ".fable-verify" / "ledger.json"
+            ledger_path = cwd / ".agent-audits" / "ledger.json"
             ledger = self.read_json(ledger_path)
             ledger["blockers"] = [{"id": "B-001", "description": "Need reviewer confirmation", "resolved": False}]
             ledger_path.write_text(json.dumps(ledger, indent=2) + "\n", encoding="utf-8")
@@ -1529,7 +1529,7 @@ class FableVerifyCliTest(unittest.TestCase):
 
             self.assertTrue(report_path.exists())
             content = report_path.read_text(encoding="utf-8")
-            self.assertIn("# Fable Verify Report", content)
+            self.assertIn("# Agent Audits Report", content)
             self.assertIn("Final verdict: VERIFIED", content)
             self.assertIn("SHA-256", content)
             self.assertIn("Size", content)
@@ -1590,7 +1590,7 @@ class FableVerifyCliTest(unittest.TestCase):
             self.assertIn("Current proof receipt", current_section)
             self.assertNotIn("Old proof receipt", current_section)
             self.assertIn("Old proof receipt", historical_section)
-            self.assertIn("Historical receipts remain in `.fable-verify/evidence/index.json`", historical_section)
+            self.assertIn("Historical receipts remain in `.agent-audits/evidence/index.json`", historical_section)
 
     def test_report_compacts_historical_evidence_to_latest_ten_with_summary(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -1635,7 +1635,7 @@ class FableVerifyCliTest(unittest.TestCase):
             historical_section = content.split("## Historical Evidence", 1)[1].split("## Files Changed", 1)[0]
 
             self.assertIn("Total historical records: 12. Showing latest 10 of 12.", historical_section)
-            self.assertIn("Full historical receipts remain in `.fable-verify/evidence/index.json`.", historical_section)
+            self.assertIn("Full historical receipts remain in `.agent-audits/evidence/index.json`.", historical_section)
             self.assertIn("| log | 12 |", historical_section)
             self.assertIn("Old proof 12", historical_section)
             self.assertNotIn("Old proof 01", historical_section)

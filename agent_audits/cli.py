@@ -1,7 +1,7 @@
-"""Command line implementation for Fable Verify.
+"""Command line implementation for Agent Audits.
 
 The code intentionally favors plain files and small functions over cleverness.
-Fable Verify should be easy for any coding agent or human maintainer to inspect.
+Agent Audits should be easy for any coding agent or human maintainer to inspect.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Any
 
 
-FABLE_DIR = ".fable-verify"
+AGENT_AUDITS_DIR = ".agent-audits"
 GOAL_FILE = "goal.md"
 ACCEPTANCE_FILE = "acceptance.json"
 LEDGER_FILE = "ledger.json"
@@ -57,8 +57,8 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
-def fable_path(root: Path, *parts: str) -> Path:
-    return root / FABLE_DIR / Path(*parts)
+def audit_path(root: Path, *parts: str) -> Path:
+    return root / AGENT_AUDITS_DIR / Path(*parts)
 
 
 def read_json(path: Path, default: Any) -> Any:
@@ -105,7 +105,7 @@ def is_inside_root(root: Path, path: Path) -> bool:
 
 
 def default_goal() -> str:
-    return "# Goal\n\nDescribe the user goal here, then run `fable-verify plan`.\n"
+    return "# Goal\n\nDescribe the user goal here, then run `agent-audits plan`.\n"
 
 
 def default_acceptance() -> dict[str, Any]:
@@ -128,7 +128,7 @@ def default_reviews() -> dict[str, Any]:
 
 
 def ensure_project(root: Path, force: bool = False) -> list[str]:
-    base = fable_path(root)
+    base = audit_path(root)
     created: list[str] = []
     for directory in [base, base / EVIDENCE_DIR, base / REPORTS_DIR]:
         if not directory.exists():
@@ -150,40 +150,40 @@ def ensure_project(root: Path, force: bool = False) -> list[str]:
 
 
 def load_acceptance(root: Path) -> dict[str, Any]:
-    return read_json(fable_path(root, ACCEPTANCE_FILE), default_acceptance())
+    return read_json(audit_path(root, ACCEPTANCE_FILE), default_acceptance())
 
 
 def save_acceptance(root: Path, acceptance: dict[str, Any]) -> None:
-    write_json(fable_path(root, ACCEPTANCE_FILE), acceptance)
+    write_json(audit_path(root, ACCEPTANCE_FILE), acceptance)
 
 
 def load_ledger(root: Path) -> dict[str, Any]:
-    ledger = read_json(fable_path(root, LEDGER_FILE), default_ledger())
+    ledger = read_json(audit_path(root, LEDGER_FILE), default_ledger())
     for key, value in default_ledger().items():
         ledger.setdefault(key, value)
     return ledger
 
 
 def save_ledger(root: Path, ledger: dict[str, Any]) -> None:
-    write_json(fable_path(root, LEDGER_FILE), ledger)
+    write_json(audit_path(root, LEDGER_FILE), ledger)
 
 
 def load_reviews(root: Path) -> dict[str, Any]:
-    reviews = read_json(fable_path(root, REVIEWS_FILE), default_reviews())
+    reviews = read_json(audit_path(root, REVIEWS_FILE), default_reviews())
     reviews.setdefault("reviews", [])
     return reviews
 
 
 def save_reviews(root: Path, reviews: dict[str, Any]) -> None:
-    write_json(fable_path(root, REVIEWS_FILE), reviews)
+    write_json(audit_path(root, REVIEWS_FILE), reviews)
 
 
 def load_evidence_index(root: Path) -> dict[str, Any]:
-    return read_json(fable_path(root, EVIDENCE_DIR, EVIDENCE_INDEX_FILE), {"evidence": []})
+    return read_json(audit_path(root, EVIDENCE_DIR, EVIDENCE_INDEX_FILE), {"evidence": []})
 
 
 def save_evidence_index(root: Path, index: dict[str, Any]) -> None:
-    write_json(fable_path(root, EVIDENCE_DIR, EVIDENCE_INDEX_FILE), index)
+    write_json(audit_path(root, EVIDENCE_DIR, EVIDENCE_INDEX_FILE), index)
 
 
 def log_work(
@@ -219,7 +219,7 @@ def goal_from_sources(root: Path, args_goal: list[str]) -> str:
         if stdin_goal:
             return stdin_goal
 
-    goal_text = read_text(fable_path(root, GOAL_FILE), "")
+    goal_text = read_text(audit_path(root, GOAL_FILE), "")
     cleaned = compact_goal(goal_text)
     return cleaned
 
@@ -720,11 +720,11 @@ def command_init(args: argparse.Namespace) -> int:
     root = Path.cwd()
     created = ensure_project(root, force=args.force)
     if created:
-        print("Initialized Fable Verify:")
+        print("Initialized Agent Audits:")
         for item in created:
             print(f"  {item}")
     else:
-        print("Fable Verify already initialized; no files changed.")
+        print("Agent Audits already initialized; no files changed.")
     return 0
 
 
@@ -733,25 +733,25 @@ def command_plan(args: argparse.Namespace) -> int:
     ensure_project(root)
     goal = goal_from_sources(root, args.goal)
     if not goal:
-        print("No goal provided. Pass a goal, pipe stdin, or edit .fable-verify/goal.md.", file=sys.stderr)
+        print("No goal provided. Pass a goal, pipe stdin, or edit .agent-audits/goal.md.", file=sys.stderr)
         return 2
 
     acceptance = load_acceptance(root)
     existing = acceptance.get("criteria", [])
     if isinstance(existing, list) and existing and not args.force:
         ledger = load_ledger(root)
-        current_goal = ledger.get("goal") or compact_goal(read_text(fable_path(root, GOAL_FILE), ""))
+        current_goal = ledger.get("goal") or compact_goal(read_text(audit_path(root, GOAL_FILE), ""))
         print("Existing acceptance criteria found; plan unchanged.")
         print(
             "The supplied goal was not recorded because that would leave old criteria "
             "and evidence attached to a new goal."
         )
-        print("Use --force to regenerate criteria, or manually edit .fable-verify/acceptance.json.")
+        print("Use --force to regenerate criteria, or manually edit .agent-audits/acceptance.json.")
         print(f"Current goal: {current_goal or '(not set)'}")
         print(f"Supplied goal: {goal}")
         return 0
 
-    write_text(fable_path(root, GOAL_FILE), f"# Goal\n\n{goal}\n")
+    write_text(audit_path(root, GOAL_FILE), f"# Goal\n\n{goal}\n")
     acceptance["criteria"] = generated_criteria(goal)
     save_acceptance(root, acceptance)
     print(f"Generated {len(acceptance['criteria'])} acceptance criteria.")
@@ -764,7 +764,7 @@ def command_plan(args: argparse.Namespace) -> int:
     log_work(ledger, "Created or updated acceptance plan.", [item["id"] for item in ledger["acceptance_criteria"]])
     save_ledger(root, ledger)
     print(f"Goal: {goal}")
-    print("Next: edit .fable-verify/acceptance.json if needed, then add evidence.")
+    print("Next: edit .agent-audits/acceptance.json if needed, then add evidence.")
     return 0
 
 
@@ -774,7 +774,7 @@ def command_status(args: argparse.Namespace) -> int:
     ledger = load_ledger(root)
     acceptance = load_acceptance(root)
     evaluation = evaluate(root, persist=False)
-    goal = ledger.get("goal") or compact_goal(read_text(fable_path(root, GOAL_FILE), ""))
+    goal = ledger.get("goal") or compact_goal(read_text(audit_path(root, GOAL_FILE), ""))
     total = evaluation.total_criteria
     missing = [issue for issue in evaluation.issues if "missing required evidence" in issue]
     blockers = has_unresolved_blockers(ledger)
@@ -823,7 +823,7 @@ def safe_artifact_name(evidence_id: str, source: Path) -> str:
 
 def prepare_artifact_path(root: Path, evidence_id: str, artifact_arg: str | None) -> tuple[Path, str, dict[str, Any]]:
     if not artifact_arg:
-        artifact = fable_path(root, EVIDENCE_DIR, f"{evidence_id}.log")
+        artifact = audit_path(root, EVIDENCE_DIR, f"{evidence_id}.log")
         return artifact, rel_path(root, artifact), {"artifact_policy": "created-repo-local"}
 
     source = Path(artifact_arg)
@@ -838,7 +838,7 @@ def prepare_artifact_path(root: Path, evidence_id: str, artifact_arg: str | None
     if is_inside_root(root, source):
         return source, rel_path(root, source), {"artifact_policy": "repo-local"}
 
-    destination = fable_path(root, EVIDENCE_DIR, safe_artifact_name(evidence_id, source))
+    destination = audit_path(root, EVIDENCE_DIR, safe_artifact_name(evidence_id, source))
     destination.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source, destination)
     return (
@@ -862,7 +862,7 @@ def evidence_input_policy_issue(evidence_type: str, has_command: bool, has_artif
     if evidence_type in PROVENANCE_REQUIRED_EVIDENCE_TYPES and not has_command and not has_artifact:
         return (
             f"{evidence_type} evidence requires --command output or a real attached artifact. "
-            "Fable Verify will not create placeholder proof for this evidence type."
+            "Agent Audits will not create placeholder proof for this evidence type."
         )
     return None
 
@@ -1081,7 +1081,7 @@ def command_show(args: argparse.Namespace) -> int:
 
 
 def reviewer_name_from_args(args: argparse.Namespace) -> str:
-    return args.reviewer_name or os.environ.get("FABLE_VERIFY_REVIEWER") or os.environ.get("USER") or "unknown"
+    return args.reviewer_name or os.environ.get("AGENT_AUDITS_REVIEWER") or os.environ.get("USER") or "unknown"
 
 
 def command_review(args: argparse.Namespace) -> int:
@@ -1350,7 +1350,7 @@ def command_report(args: argparse.Namespace) -> int:
     index = load_evidence_index(root)
     reviews = load_reviews(root)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
-    report_path = fable_path(root, REPORTS_DIR, f"report-{timestamp}.md")
+    report_path = audit_path(root, REPORTS_DIR, f"report-{timestamp}.md")
 
     criteria = acceptance.get("criteria", [])
     criteria_rows = []
@@ -1397,14 +1397,14 @@ def command_report(args: argparse.Namespace) -> int:
 
     content = "\n".join(
         [
-            "# Fable Verify Report",
+            "# Agent Audits Report",
             "",
             f"Generated: {utc_now()}",
             f"Final verdict: {evaluation.verdict}",
             "",
             "## Original Goal",
             "",
-            ledger.get("goal") or compact_goal(read_text(fable_path(root, GOAL_FILE), "")) or "(not set)",
+            ledger.get("goal") or compact_goal(read_text(audit_path(root, GOAL_FILE), "")) or "(not set)",
             "",
             "## Acceptance Criteria",
             "",
@@ -1442,9 +1442,9 @@ def command_report(args: argparse.Namespace) -> int:
             "",
             "## Historical Evidence",
             "",
-            "Historical receipts remain in `.fable-verify/evidence/index.json` but do not support the current goal unless reattached.",
+            "Historical receipts remain in `.agent-audits/evidence/index.json` but do not support the current goal unless reattached.",
             f"Total historical records: {historical_count}. Showing latest {historical_preview_count} of {historical_count}.",
-            "Full historical receipts remain in `.fable-verify/evidence/index.json`.",
+            "Full historical receipts remain in `.agent-audits/evidence/index.json`.",
             "",
             "### Historical Summary By Type",
             "",
@@ -1487,17 +1487,17 @@ def command_report(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="fable-verify",
+        prog="agent-audits",
         description="Portable acceptance-criteria and evidence gate for coding agents.",
     )
     subcommands = parser.add_subparsers(dest="command", required=True)
 
-    init_parser = subcommands.add_parser("init", help="Create .fable-verify files without overwriting them.")
-    init_parser.add_argument("--force", action="store_true", help="Overwrite existing Fable Verify files.")
+    init_parser = subcommands.add_parser("init", help="Create .agent-audits files without overwriting them.")
+    init_parser.add_argument("--force", action="store_true", help="Overwrite existing Agent Audits files.")
     init_parser.set_defaults(func=command_init)
 
     plan_parser = subcommands.add_parser("plan", help="Create or update acceptance criteria from a goal.")
-    plan_parser.add_argument("goal", nargs="*", help="Goal text. If omitted, stdin or .fable-verify/goal.md is used.")
+    plan_parser.add_argument("goal", nargs="*", help="Goal text. If omitted, stdin or .agent-audits/goal.md is used.")
     plan_parser.add_argument("--force", action="store_true", help="Regenerate existing acceptance criteria.")
     plan_parser.set_defaults(func=command_plan)
 
@@ -1524,7 +1524,7 @@ def build_parser() -> argparse.ArgumentParser:
     review_parser.add_argument("--verdict", "-v", required=True, choices=sorted(SUPPORTED_REVIEW_VERDICTS))
     review_parser.add_argument("--notes", "-n", required=True, help="Reviewer notes explaining the verdict.")
     review_parser.add_argument("--reviewer-kind", default="agent", help="Reviewer kind, such as agent or human.")
-    review_parser.add_argument("--reviewer-name", help="Reviewer name. Defaults to FABLE_VERIFY_REVIEWER, USER, or unknown.")
+    review_parser.add_argument("--reviewer-name", help="Reviewer name. Defaults to AGENT_AUDITS_REVIEWER, USER, or unknown.")
     review_parser.set_defaults(func=command_review)
 
     check_parser = subcommands.add_parser("check", help="Run the verification gate.")

@@ -1,27 +1,27 @@
 {
-  "name": "fable-verify",
+  "name": "agent-audits",
   "version": "0.1.1",
-  "description": "Proof-of-done verification gate for AI coding agents with acceptance criteria, evidence reviews, JSON checks, and audit reports.",
-  "homepage": "https://github.com/aiswarya797/fable-verify#readme",
+  "description": "Repo-local proof-of-done loops for AI coding agents with acceptance criteria, evidence reviews, JSON checks, and audit reports.",
+  "homepage": "https://github.com/aiswarya797/agent-audits#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/aiswarya797/fable-verify.git"
+    "url": "git+https://github.com/aiswarya797/agent-audits.git"
   },
   "bugs": {
-    "url": "https://github.com/aiswarya797/fable-verify/issues"
+    "url": "https://github.com/aiswarya797/agent-audits/issues"
   },
   "license": "MIT",
   "bin": {
-    "fable-verify": "bin/fable-verify"
+    "agent-audits": "bin/agent-audits"
   },
   "files": [
     "assets",
-    "bin/fable-verify",
+    "bin/agent-audits",
     "docs",
     "examples",
-    "fable-verify/SKILL.md",
-    "fable_verify/__init__.py",
-    "fable_verify/cli.py",
+    "agent-audits/SKILL.md",
+    "agent_audits/__init__.py",
+    "agent_audits/cli.py",
     "LICENSE",
     "README.md",
     "scripts/doctor.py",

@@ -28,9 +28,9 @@ class ScenarioResult:
 
 def resolve_cli() -> str:
     candidates: list[str | None] = [
-        os.environ.get("FABLE_VERIFY_BIN"),
-        str(PROJECT_ROOT / "bin" / "fable-verify"),
-        shutil.which("fable-verify"),
+        os.environ.get("AGENT_AUDITS_BIN"),
+        str(PROJECT_ROOT / "bin" / "agent-audits"),
+        shutil.which("agent-audits"),
     ]
     for candidate in candidates:
         if not candidate:
@@ -38,7 +38,7 @@ def resolve_cli() -> str:
         path = Path(candidate)
         if path.exists() or shutil.which(candidate):
             return candidate
-    raise SystemExit("fable-verify not found via FABLE_VERIFY_BIN, repo bin, or PATH")
+    raise SystemExit("agent-audits not found via AGENT_AUDITS_BIN, repo bin, or PATH")
 
 
 def python_command(code: str) -> str:
@@ -86,14 +86,14 @@ def write_acceptance(cwd: Path, required: list[str]) -> None:
             }
         ]
     }
-    (cwd / ".fable-verify" / "acceptance.json").write_text(
+    (cwd / ".agent-audits" / "acceptance.json").write_text(
         json.dumps(data, indent=2) + "\n",
         encoding="utf-8",
     )
 
 
 def in_workspace(cli: str, scenario: Callable[[str, Path], tuple[bool, str]]) -> tuple[bool, str]:
-    with tempfile.TemporaryDirectory(prefix="fable-verify-eval-") as temp:
+    with tempfile.TemporaryDirectory(prefix="agent-audits-eval-") as temp:
         cwd = Path(temp)
         init = run_cli(cli, cwd, "init")
         if init.returncode != 0:
@@ -252,7 +252,7 @@ def main() -> int:
         for name, expected_gate, scenario in scenarios
     ]
 
-    print("Fable Verify Eval Matrix")
+    print("Agent Audits Eval Matrix")
     for result in results:
         status = "PASS" if result.ok else "FAIL"
         print(f"{status:4} {result.name} (expected gate {result.expected_gate}): {result.detail}")
