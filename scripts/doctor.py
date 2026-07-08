@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Preflight checks for running Fable Verify in the current repository."""
+"""Preflight checks for running Agent Audits in the current repository."""
 
 from __future__ import annotations
 
@@ -16,11 +16,11 @@ from pathlib import Path
 MIN_PYTHON = (3, 10)
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_STATE_FILES = [
-    Path(".fable-verify/goal.md"),
-    Path(".fable-verify/acceptance.json"),
-    Path(".fable-verify/ledger.json"),
-    Path(".fable-verify/reviews.json"),
-    Path(".fable-verify/evidence/index.json"),
+    Path(".agent-audits/goal.md"),
+    Path(".agent-audits/acceptance.json"),
+    Path(".agent-audits/ledger.json"),
+    Path(".agent-audits/reviews.json"),
+    Path(".agent-audits/evidence/index.json"),
 ]
 
 
@@ -33,9 +33,9 @@ class Check:
 
 def resolve_cli() -> str | None:
     candidates: list[str | None] = [
-        os.environ.get("FABLE_VERIFY_BIN"),
-        str(PROJECT_ROOT / "bin" / "fable-verify"),
-        shutil.which("fable-verify"),
+        os.environ.get("AGENT_AUDITS_BIN"),
+        str(PROJECT_ROOT / "bin" / "agent-audits"),
+        shutil.which("agent-audits"),
     ]
     for candidate in candidates:
         if not candidate:
@@ -70,19 +70,19 @@ def check_python() -> Check:
 def check_cli(cwd: Path) -> Check:
     cli = resolve_cli()
     if not cli:
-        return Check("FAIL", "fable-verify availability", "not found via FABLE_VERIFY_BIN, repo bin, or PATH")
+        return Check("FAIL", "agent-audits availability", "not found via AGENT_AUDITS_BIN, repo bin, or PATH")
     result = run([cli, "--help"], cwd)
     if result.returncode == 0:
-        return Check("PASS", "fable-verify availability", cli)
+        return Check("PASS", "agent-audits availability", cli)
     detail = result.stderr.strip() or result.stdout.strip() or f"{cli} --help exited {result.returncode}"
-    return Check("FAIL", "fable-verify availability", detail)
+    return Check("FAIL", "agent-audits availability", detail)
 
 
 def check_writable(cwd: Path) -> Check:
     try:
         with tempfile.NamedTemporaryFile(
             dir=cwd,
-            prefix=".fable-verify-doctor-",
+            prefix=".agent-audits-doctor-",
             delete=False,
         ) as handle:
             path = Path(handle.name)
@@ -104,37 +104,37 @@ def json_state_issue(path: Path) -> str | None:
 
 
 def check_state(cwd: Path) -> Check:
-    state_dir = cwd / ".fable-verify"
+    state_dir = cwd / ".agent-audits"
     if not state_dir.exists():
-        return Check("WARN", ".fable-verify state", "not initialized yet; run fable-verify init")
+        return Check("WARN", ".agent-audits state", "not initialized yet; run agent-audits init")
     if not state_dir.is_dir():
-        return Check("FAIL", ".fable-verify state", ".fable-verify exists but is not a directory")
+        return Check("FAIL", ".agent-audits state", ".agent-audits exists but is not a directory")
 
     missing = [str(path) for path in EXPECTED_STATE_FILES if not (cwd / path).exists()]
     if missing:
-        return Check("FAIL", ".fable-verify state", "missing expected files: " + ", ".join(missing))
+        return Check("FAIL", ".agent-audits state", "missing expected files: " + ", ".join(missing))
 
     for path in [
-        cwd / ".fable-verify/acceptance.json",
-        cwd / ".fable-verify/ledger.json",
-        cwd / ".fable-verify/reviews.json",
-        cwd / ".fable-verify/evidence/index.json",
+        cwd / ".agent-audits/acceptance.json",
+        cwd / ".agent-audits/ledger.json",
+        cwd / ".agent-audits/reviews.json",
+        cwd / ".agent-audits/evidence/index.json",
     ]:
         issue = json_state_issue(path)
         if issue:
-            return Check("FAIL", ".fable-verify state", issue)
-    return Check("PASS", ".fable-verify state", "initialized and readable")
+            return Check("FAIL", ".agent-audits state", issue)
+    return Check("PASS", ".agent-audits state", "initialized and readable")
 
 
 def check_ignored(cwd: Path) -> Check:
     git = shutil.which("git")
     if not git:
-        return Check("WARN", ".fable-verify ignored", "git is not available; cannot verify ignore rules")
+        return Check("WARN", ".agent-audits ignored", "git is not available; cannot verify ignore rules")
     root = git_root(cwd)
     if not root:
-        return Check("WARN", ".fable-verify ignored", "not inside a git work tree")
+        return Check("WARN", ".agent-audits ignored", "not inside a git work tree")
 
-    state_path = cwd / ".fable-verify"
+    state_path = cwd / ".agent-audits"
     try:
         pathspec = str(state_path.resolve().relative_to(root))
     except ValueError:
@@ -143,8 +143,8 @@ def check_ignored(cwd: Path) -> Check:
         pathspec += "/"
     result = run([git, "check-ignore", "-q", "--", pathspec], root)
     if result.returncode == 0:
-        return Check("PASS", ".fable-verify ignored", pathspec)
-    return Check("FAIL", ".fable-verify ignored", f"{pathspec} is not ignored by git")
+        return Check("PASS", ".agent-audits ignored", pathspec)
+    return Check("FAIL", ".agent-audits ignored", f"{pathspec} is not ignored by git")
 
 
 def main() -> int:
@@ -157,7 +157,7 @@ def main() -> int:
         check_ignored(cwd),
     ]
 
-    print("Fable Verify Doctor")
+    print("Agent Audits Doctor")
     for check in checks:
         print(f"{check.status:4} {check.name}: {check.detail}")
 

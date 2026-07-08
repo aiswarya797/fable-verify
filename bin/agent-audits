@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Repo-local executable wrapper for Fable Verify."""
+"""Repo-local executable wrapper for Agent Audits."""
 
 from pathlib import Path
 import sys
@@ -8,7 +8,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from fable_verify.cli import main
+from agent_audits.cli import main
 
 
 if __name__ == "__main__":

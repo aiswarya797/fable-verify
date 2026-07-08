@@ -5,25 +5,26 @@ auditability, or PR verification workflows.
 
 ## One-Liner
 
-Fable Verify is a lightweight repo-local proof gate that records acceptance
+Agent Audits is a lightweight repo-local proof loop that records acceptance
 criteria, evidence artifacts, explicit evidence review, and a final report before
 an agent claims work is complete.
 
 ## Short Pitch
 
-Fable Verify helps coding agents prove completion instead of merely saying
-"done." It stores acceptance criteria, command logs, diffs, screenshots or
-browser artifacts, review verdicts, artifact hashes, and final reports in a
-plain `.fable-verify/` folder that teams can inspect or gate in CI.
+Agent Audits helps coding agents prove completion instead of merely saying
+"done." It bakes a verification loop into the goal: acceptance criteria, command
+logs, diffs, screenshots or browser artifacts, review verdicts, artifact hashes,
+and final reports in a plain `.agent-audits/` folder that teams can inspect or
+gate in CI.
 
 It does not enforce permissions, sandbox an agent, or replace CI and code
 review. It complements those systems by making the completion claim auditable.
 
 ## PR Workflow Pitch
 
-For PRs, Fable Verify can act as a reviewed-proof gate: the agent captures real
+For PRs, Agent Audits can act as a reviewed-proof gate: the agent captures real
 evidence, inspects it, records whether each artifact supports the acceptance
-criteria, and then `fable-verify check --json` gives supervisors or CI a
+criteria, and then `agent-audits check --json` gives supervisors or CI a
 machine-readable verdict.
 
 Teams can pair it with branch protection, normal test jobs, code review, and
@@ -49,14 +50,14 @@ their existing permission model.
 
 ## Safe Claim
 
-"Fable Verify gives teams an auditable, repo-local completion proof trail for
-coding agents. It is a lightweight proof gate that complements CI, code review,
-and permission systems."
+"Agent Audits gives teams an auditable, repo-local completion proof trail for
+coding agents. It is a lightweight proof loop and gate that complements CI, code
+review, and permission systems."
 
 ## Unsafe Claims To Avoid
 
-- "Fable Verify prevents bad edits."
-- "Fable Verify sandboxes the agent."
-- "Fable Verify proves the code is correct."
-- "Fable Verify replaces code review."
-- "Fable Verify understands screenshots or code semantics automatically."
+- "Agent Audits prevents bad edits."
+- "Agent Audits sandboxes the agent."
+- "Agent Audits proves the code is correct."
+- "Agent Audits replaces code review."
+- "Agent Audits understands screenshots or code semantics automatically."

@@ -1,23 +1,23 @@
 ---
-name: fable-verify
+name: agent-audits
 description: >-
-  Use Fable Verify whenever a coding agent needs to make, verify, or defend a
+  Use Agent Audits whenever a coding agent needs to make, verify, or defend a
   completion claim for code work: done, fixed, correct, verified, ready for
   review, safe to merge, or "how do you know?". Use it for proof-of-done,
   acceptance judges, PR verification gates, audit trails, completion receipts,
   supervised or autonomous coding handoffs, command output and exit-code
   evidence, stale-proof checks, tamper-evident artifacts, and repo-local reports
-  tied to acceptance criteria. If no current Fable Verify proof exists, do not
+  tied to acceptance criteria. If no current Agent Audits proof exists, do not
   answer from memory alone; create or collect evidence, run the verification
   gate, or report the work as unverified.
 ---
 
-# Fable Verify Agent Instructions
+# Agent Audits Instructions
 
-Use this file when a coding agent should work in a Fable-like discipline using
+Use this file when a coding agent should work in an agent-audit discipline using
 only repo-local files, scripts, and Markdown instructions.
 
-Fable Verify is harness-agnostic. These instructions apply in Codex, Claude
+Agent Audits is harness-agnostic. These instructions apply in Codex, Claude
 Code, Cursor, OpenCode, shell-only workflows, and any other environment that can
 read files and run local commands.
 
@@ -31,7 +31,7 @@ Goal -> Spec -> Plan -> Work -> Evidence -> Self-Review -> Verification Gate -> 
 
 The agent must not claim completion unless every acceptance criterion has
 supporting evidence, that evidence has been explicitly reviewed against the
-acceptance criterion, and `fable-verify check` passes.
+acceptance criterion, and `agent-audits check` passes.
 
 ## Completion Claim Workflow
 
@@ -40,15 +40,15 @@ correct, verified, ready for review, safe to merge, or when the user asks "how
 do you know?", "what proof do we have?", "did this solve the issue?", or a
 similar completion-proof question.
 
-1. Run `fable-verify status`.
-2. If a current Fable Verify plan and evidence already exist, inspect the
-   relevant evidence with `fable-verify show EV-###` or the appropriate viewer.
+1. Run `agent-audits status`.
+2. If a current Agent Audits plan and evidence already exist, inspect the
+   relevant evidence with `agent-audits show EV-###` or the appropriate viewer.
 3. Run or rerun only the missing verification steps needed for the current
-   acceptance criteria. Attach each result with `fable-verify add-evidence`.
-4. Record explicit reviews with `fable-verify review` that explain why each
+   acceptance criteria. Attach each result with `agent-audits add-evidence`.
+4. Record explicit reviews with `agent-audits review` that explain why each
    artifact supports, does not support, or is unclear for its criterion.
-5. Run `fable-verify check`.
-6. If `check` passes, generate `fable-verify report` and answer from the current
+5. Run `agent-audits check`.
+6. If `check` passes, generate `agent-audits report` and answer from the current
    criteria, evidence IDs, commands/artifacts, review notes, and verdict.
 7. If `check` fails, do not claim completion. Continue only when the next action
    is clear and bounded. Otherwise record a blocker and report the exact
@@ -57,7 +57,7 @@ similar completion-proof question.
 Do not loop forever. After a repeated command failure, missing dependency,
 unclear acceptance criterion, unavailable browser/screenshot artifact, or other
 blocked proof path, stop the verification attempt, record the blocker in
-`.fable-verify/ledger.json`, and say the work is not verified yet.
+`.agent-audits/ledger.json`, and say the work is not verified yet.
 
 Evidence only counts when it is explicitly attached to the current acceptance
 criterion's `evidence` array. Reports show current proof separately from
@@ -70,16 +70,16 @@ the supporting review is invalid.
 
 ## Enforcement Boundary
 
-Fable Verify verifies completion evidence. It checks whether acceptance criteria
+Agent Audits verifies completion evidence. It checks whether acceptance criteria
 have current-plan evidence attachments, correctly owned evidence records, real
 artifact paths, artifact integrity metadata, successful command evidence, no
 weak evidence substitutes for technical proof, explicit supporting review
 verdicts with notes, review-time artifact integrity, and no unresolved blockers.
 
-This is a Fable-like self-checking discipline, not full Fable parity. The CLI
-does not semantically understand screenshots, diffs, logs, or code. The agent or
-human reviewer must inspect the artifact and record whether it supports the
-criterion.
+This is an agent-audit self-checking discipline, not full policy-enforcement
+parity. The CLI does not semantically understand screenshots, diffs, logs, or
+code. The agent or human reviewer must inspect the artifact and record whether
+it supports the criterion.
 
 The current CLI does not block edits before planning, enforce forbidden paths,
 install pre-edit hooks, or stop an agent that chooses to ignore it. Use it as a
@@ -88,19 +88,19 @@ sandbox, hook system, or hard edit blocker unless those controls are actually
 implemented and tested.
 
 Hard enforcement roadmap: future optional layers could add pre-edit hooks,
-worktree apply gates, forbidden-path policies, or CI-required `fable-verify
+worktree apply gates, forbidden-path policies, or CI-required `agent-audits
 check` runs. Those controls are not part of the current lightweight CLI.
 
 ## Before Starting Work
 
 1. Read the user's goal.
-2. If you are validating the Fable Verify package itself, run `npm run doctor`,
+2. If you are validating the Agent Audits package itself, run `npm run doctor`,
    `npm run smoke`, and `npm run eval:matrix` before release checks.
-3. Run `fable-verify init`, or create the same `.fable-verify/` structure if the
+3. Run `agent-audits init`, or create the same `.agent-audits/` structure if the
    command is not on `PATH`.
-4. Run `fable-verify plan "<goal>"`, provide the goal through stdin, or write the
-   goal to `.fable-verify/goal.md` and run `fable-verify plan`.
-5. Review `.fable-verify/acceptance.json`.
+4. Run `agent-audits plan "<goal>"`, provide the goal through stdin, or write the
+   goal to `.agent-audits/goal.md` and run `agent-audits plan`.
+5. Review `.agent-audits/acceptance.json`.
 6. Treat generated criteria as workflow templates. The CLI has starting
    templates for bug fixes, UI changes, refactors, docs-only changes, and
    autonomous PR handoffs, but the agent still has to make the criteria fit the
@@ -112,7 +112,7 @@ check` runs. Those controls are not part of the current lightweight CLI.
 
 ## During Work
 
-Maintain `.fable-verify/ledger.json` as the live requirements ledger.
+Maintain `.agent-audits/ledger.json` as the live requirements ledger.
 
 For every implementation step:
 
@@ -122,9 +122,9 @@ For every implementation step:
 - add evidence immediately after running tests, builds, lints, typechecks,
   browser checks, screenshot captures, file reads, or diff reviews;
 - keep evidence artifact paths real and reviewable.
-- inspect current evidence with `fable-verify show EV-###` or an appropriate
+- inspect current evidence with `agent-audits show EV-###` or an appropriate
   viewer before recording a review;
-- record a review with `fable-verify review` and concrete notes explaining why
+- record a review with `agent-audits review` and concrete notes explaining why
   the artifact supports, does not support, or is unclear for the criterion.
 
 Do not mark a criterion complete without evidence.
@@ -144,7 +144,7 @@ technical criteria that require strong evidence.
 `test`, `build`, `lint`, and `typecheck` are command-like evidence types. They
 must be captured with command provenance:
 
-- Fable Verify runs the command through `--command` and records stdout, stderr,
+- Agent Audits runs the command through `--command` and records stdout, stderr,
   and exit code; or
 - the agent records externally captured command evidence with `--command`,
   `--artifact-path`, and `--exit-code`.
@@ -152,11 +152,11 @@ must be captured with command provenance:
 Use command evidence whenever possible:
 
 ```sh
-fable-verify add-evidence --criterion AC-001 --type test --command "npm test"
+agent-audits add-evidence --criterion AC-001 --type test --command "npm test"
 ```
 
 That command captures stdout, stderr, and exit code into
-`.fable-verify/evidence/`.
+`.agent-audits/evidence/`.
 
 Type-specific proof rules:
 
@@ -177,13 +177,13 @@ Do not record placeholder-only evidence for strong types.
 
 If you pass `--artifact-path`, the path must already exist and must be a regular
 file, not a directory. Repo-local artifacts are recorded by relative path.
-Artifacts outside the repo are copied into `.fable-verify/evidence/`, with the
+Artifacts outside the repo are copied into `.agent-audits/evidence/`, with the
 original absolute source path kept in metadata. Missing artifact paths and
 directories must be treated as failed evidence operations, not as evidence to fix
 later.
 
 If you pass both `--command` and `--artifact-path`, you are recording command
-evidence captured outside Fable Verify. You must also pass `--exit-code`.
+evidence captured outside Agent Audits. You must also pass `--exit-code`.
 Without it, `add-evidence` fails and must not mutate state. A nonzero
 `--exit-code` may be recorded, but it returns nonzero and the verification gate
 must fail.
@@ -200,7 +200,7 @@ than ignored.
 
 Evidence also belongs to the current acceptance plan only when the current
 criterion lists that evidence ID. Old records left in
-`.fable-verify/evidence/index.json` are historical receipts, not proof for a new
+`.agent-audits/evidence/index.json` are historical receipts, not proof for a new
 criterion that happens to reuse the same ID.
 
 ## Review Rules
@@ -211,7 +211,7 @@ its owning acceptance criterion.
 Use `show` before review:
 
 ```sh
-fable-verify show EV-001
+agent-audits show EV-001
 ```
 
 For log-like artifacts, `show` prints metadata and a text preview. For
@@ -221,7 +221,7 @@ open and inspect the image. Do not claim the CLI visually understood it.
 Record a review:
 
 ```sh
-fable-verify review --criterion AC-001 --evidence EV-001 --verdict supports --notes "Test log shows npm test completed with exit code 0 and all suites passed."
+agent-audits review --criterion AC-001 --evidence EV-001 --verdict supports --notes "Test log shows npm test completed with exit code 0 and all suites passed."
 ```
 
 Supported verdicts:
@@ -234,34 +234,34 @@ Only `supports` can satisfy the verification gate. Missing notes, unknown
 criteria/evidence, evidence owned by a different criterion, evidence not
 attached to the criterion, and missing artifacts must fail review recording.
 
-Review records live in `.fable-verify/reviews.json` and store review id,
+Review records live in `.agent-audits/reviews.json` and store review id,
 criterion id, evidence id, verdict, notes, timestamp, reviewer kind/name, and
 the artifact hash/size observed at review time. If the artifact changes after
 review, the review no longer supports the gate.
 
 ## Before Final Answer
 
-1. Run `fable-verify status`.
-2. Inspect current evidence with `fable-verify show EV-###` or an appropriate
+1. Run `agent-audits status`.
+2. Inspect current evidence with `agent-audits show EV-###` or an appropriate
    artifact viewer.
-3. Record reviews with `fable-verify review` for every current evidence
-   artifact. `fable-verify check` alone is not enough.
-4. Run `fable-verify check`, or `fable-verify check --json` when a supervisor,
+3. Record reviews with `agent-audits review` for every current evidence
+   artifact. `agent-audits check` alone is not enough.
+4. Run `agent-audits check`, or `agent-audits check --json` when a supervisor,
    CI job, or PR workflow needs machine-readable output.
 5. If `check` fails, continue working or clearly report what remains unverified.
-6. Run `fable-verify report`.
+6. Run `agent-audits report`.
 7. In the final response, summarize the current proof evidence, self-review, and
    verdict. Do not merely say "done."
 
 ## PR And CI Gate Use
 
-For PR verification workflows, `fable-verify check --json` is the supervisor or
+For PR verification workflows, `agent-audits check --json` is the supervisor or
 CI-friendly output. It reports the verdict, whether completion is allowed,
 passing criteria count, missing evidence, blockers, issues, and per-criterion
 status.
 
 Use it alongside normal CI, branch protection, code review, security review, and
-repository permissions. Fable Verify records and checks completion proof; it
+repository permissions. Agent Audits records and checks completion proof; it
 does not sandbox an agent, enforce permissions, or prevent edits.
 
 Do not auto-create `supports` reviews inside CI just to make the gate pass. A
@@ -280,7 +280,7 @@ review is an agent or human judgment made after inspecting the artifact.
 - Do not edit or replace evidence artifacts after capture without recording new
   evidence.
 - Do not ignore failed checks.
-- Do not skip evidence review and rely on `fable-verify check` alone.
+- Do not skip evidence review and rely on `agent-audits check` alone.
 - Do not record `supports` unless you inspected the artifact and can explain why
   it supports the criterion in the notes.
 - Do not delete verification files to make checks pass.
@@ -289,11 +289,11 @@ review is an agent or human judgment made after inspecting the artifact.
   reattached to the current criterion and still represents valid proof.
 - Do not record externally captured command evidence without an exit code.
 - Do not use directories as evidence artifacts.
-- Do not hide blockers outside `.fable-verify/ledger.json`.
+- Do not hide blockers outside `.agent-audits/ledger.json`.
 
 ## Ledger Schema
 
-Keep `.fable-verify/ledger.json` shaped like this:
+Keep `.agent-audits/ledger.json` shaped like this:
 
 ```json
 {
@@ -337,7 +337,7 @@ Final completion is allowed only when:
 - every supporting review's recorded artifact hash and byte size still match the
   current artifact;
 - no unresolved blockers remain;
-- `fable-verify check` prints `PASS`.
+- `agent-audits check` prints `PASS`.
 
 If any of those are false, the final answer must say what remains unverified.
 
@@ -352,6 +352,6 @@ review; it is not proof that the CLI semantically understood screenshots, diffs,
 logs, or code. Historical receipts appear in a clearly labeled, compact
 Historical Evidence section summarized by count and type, with at most the
 latest 10 historical records shown. Full historical receipts remain in
-`.fable-verify/evidence/index.json`, but they do not support the current goal
+`.agent-audits/evidence/index.json`, but they do not support the current goal
 unless reattached to the current criterion and still pass integrity and review
 checks.

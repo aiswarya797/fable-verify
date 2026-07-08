@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the happy-path Fable Verify loop in a temporary repository."""
+"""Run the happy-path Agent Audits loop in a temporary repository."""
 
 from __future__ import annotations
 
@@ -17,9 +17,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 def resolve_cli() -> str:
     candidates: list[str | None] = [
-        os.environ.get("FABLE_VERIFY_BIN"),
-        str(PROJECT_ROOT / "bin" / "fable-verify"),
-        shutil.which("fable-verify"),
+        os.environ.get("AGENT_AUDITS_BIN"),
+        str(PROJECT_ROOT / "bin" / "agent-audits"),
+        shutil.which("agent-audits"),
     ]
     for candidate in candidates:
         if not candidate:
@@ -27,7 +27,7 @@ def resolve_cli() -> str:
         path = Path(candidate)
         if path.exists() or shutil.which(candidate):
             return candidate
-    raise SystemExit("fable-verify not found via FABLE_VERIFY_BIN, repo bin, or PATH")
+    raise SystemExit("agent-audits not found via AGENT_AUDITS_BIN, repo bin, or PATH")
 
 
 def python_command(code: str) -> str:
@@ -38,7 +38,7 @@ def python_command(code: str) -> str:
 
 def run_cli(cli: str, cwd: Path, *args: str, expect: int = 0) -> subprocess.CompletedProcess[str]:
     result = subprocess.run([cli, *args], cwd=cwd, text=True, capture_output=True, check=False)
-    print(f"$ fable-verify {' '.join(args)}")
+    print(f"$ agent-audits {' '.join(args)}")
     print(f"exit: {result.returncode}")
     if result.stdout.strip():
         print(result.stdout.strip())
@@ -68,7 +68,7 @@ def review_evidence(cli: str, cwd: Path, criterion: str, evidence: str, notes: s
 
 def main() -> int:
     cli = resolve_cli()
-    with tempfile.TemporaryDirectory(prefix="fable-verify-smoke-") as temp:
+    with tempfile.TemporaryDirectory(prefix="agent-audits-smoke-") as temp:
         cwd = Path(temp)
         print(f"Temporary repo: {cwd}")
         run_cli(cli, cwd, "init")

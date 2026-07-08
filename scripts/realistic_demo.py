@@ -18,9 +18,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 def resolve_cli() -> str:
     candidates: list[str | None] = [
-        os.environ.get("FABLE_VERIFY_BIN"),
-        str(PROJECT_ROOT / "bin" / "fable-verify"),
-        shutil.which("fable-verify"),
+        os.environ.get("AGENT_AUDITS_BIN"),
+        str(PROJECT_ROOT / "bin" / "agent-audits"),
+        shutil.which("agent-audits"),
     ]
     for candidate in candidates:
         if not candidate:
@@ -28,7 +28,7 @@ def resolve_cli() -> str:
         path = Path(candidate)
         if path.exists() or shutil.which(candidate):
             return candidate
-    raise SystemExit("fable-verify not found via FABLE_VERIFY_BIN, repo bin, or PATH")
+    raise SystemExit("agent-audits not found via AGENT_AUDITS_BIN, repo bin, or PATH")
 
 
 def run(
@@ -51,11 +51,11 @@ def run(
 
 
 def run_cli(cli: str, cwd: Path, *args: str, expect: int = 0) -> subprocess.CompletedProcess[str]:
-    return run([cli, *args], cwd, expect=expect, display_command=["fable-verify", *args])
+    return run([cli, *args], cwd, expect=expect, display_command=["agent-audits", *args])
 
 
 def write_baseline_project(cwd: Path) -> None:
-    (cwd / ".gitignore").write_text(".fable-verify/\n", encoding="utf-8")
+    (cwd / ".gitignore").write_text(".agent-audits/\n", encoding="utf-8")
     (cwd / "index.html").write_text(
         "\n".join(
             [
@@ -76,7 +76,7 @@ def write_baseline_project(cwd: Path) -> None:
     (cwd / "package.json").write_text(
         json.dumps(
             {
-                "name": "fable-verify-realistic-demo",
+                "name": "agent-audits-realistic-demo",
                 "private": True,
                 "scripts": {"test": "node test/home.test.js"},
             },
@@ -176,12 +176,12 @@ def review_evidence(cli: str, cwd: Path, criterion: str, evidence: str, notes: s
 
 def main() -> int:
     cli = resolve_cli()
-    with tempfile.TemporaryDirectory(prefix="fable-verify-realistic-demo-") as temp:
+    with tempfile.TemporaryDirectory(prefix="agent-audits-realistic-demo-") as temp:
         cwd = Path(temp)
         print(f"Temporary demo repo: {cwd}")
         run(["git", "init"], cwd)
         run(["git", "config", "user.email", "demo@example.invalid"], cwd)
-        run(["git", "config", "user.name", "Fable Verify Demo"], cwd)
+        run(["git", "config", "user.name", "Agent Audits Demo"], cwd)
         write_baseline_project(cwd)
         run(["git", "add", "."], cwd)
         run(["git", "commit", "-m", "baseline demo app"], cwd)
